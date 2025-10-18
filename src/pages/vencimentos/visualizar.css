@@ -1,0 +1,4 @@
+.nome-produto {
+  min-width: 200px; /* aumenta conforme necessário */
+  word-break: break-word; /* quebra linhas longas */
+}

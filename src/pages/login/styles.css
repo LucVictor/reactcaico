@@ -1,0 +1,47 @@
+/* 2. Cria o container do background com a imagem */
+.background-animado {
+  /* Ocupa a tela inteira */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* Coloca o background atrás de tudo */
+
+  /* Configuração da imagem */
+  background-image: url("../../static/caico_caminhoes.jpeg");
+  background-size: cover; /* Garante que a imagem cubra toda a área */
+  background-position: center center;
+
+  /* Aplica o filtro de desfoque (Borrado!) */
+  filter: blur(5px); /* Você pode ajustar o valor (e.g., 3px a 10px) */
+
+  /* 3. Aplica a animação (o movimento suave) */
+  animation: zoom-pan 60s infinite alternate ease-in-out;
+}
+
+/* 4. Define a animação (O "GIF" de movimento lento) */
+@keyframes zoom-pan {
+  0% {
+    /* Posição inicial: mais próximo */
+    transform: scale(1.1) translate(0%, 0%);
+  }
+  50% {
+    /* Movimento para o canto: sutil */
+    transform: scale(1.15) translate(-5%, -5%);
+  }
+  100% {
+    /* Posição final: um pouco mais longe/outro canto */
+    transform: scale(1.1) translate(5%, 5%);
+  }
+}
+
+/* 5. Estilo da caixa de login (apenas para visualização) */
+.caixa-login {
+  background-color: rgba(255, 255, 255, 0.9); /* Fundo semi-transparente */
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  z-index: 1; /* Garante que fique por cima do background */
+}
