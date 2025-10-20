@@ -124,7 +124,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
           type="number"
           step={0.01}
           placeholder="Digite a quantidade no sistema"
-          value={quantidade_sistema || ""}
+          value={quantidade_sistema ?? ""}
           onChange={(e) => setQuantidade_sistema(Number(e.target.value))}
           required
         />
@@ -135,7 +135,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
         <TextInput
           id="vproduto"
           type="date"
-          value={dataConferencia || ""}
+          value={dataConferencia ?? ""}
           onChange={(e) => setDataConferencia(e.target.value)}
           required
         />
