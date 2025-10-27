@@ -41,7 +41,7 @@ export default function Login() {
       setUserFromToken(token);
 
       // Redireciona
-      navigate("/vencimentos");
+      navigate("/pontos");
     } catch (err) {
       console.error(err);
       setErrorMsg("Erro ao conectar com o servidor");

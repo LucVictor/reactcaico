@@ -91,6 +91,10 @@ export default function Layout({ pagina }: paginaProps) {
               Metas
             </Button>
 
+            <Button onClick={() => navigate("/pontos")} color="alternative">
+              Pontos
+            </Button>
+
             <Button onClick={() => navigate("/tarefas")} color="alternative">
               Tarefas
             </Button>
