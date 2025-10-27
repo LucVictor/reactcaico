@@ -12,6 +12,7 @@ import { IndicadorAvaria } from "./pages/metas/avariasMetas";
 import IndexMetas from "./pages/metas";
 import Tarefas from "./pages/tarefas";
 import VisualizarVencimentos from "./pages/vencimentos/visualizar";
+import IndexPoints from "./pages/rank/index";
 
 function App() {
   const checkToken = useAuthStore.getState().checkTokenValidity;
@@ -114,6 +115,7 @@ function App() {
           element={<VisualizarVencimentos />}
         />
 
+        <Route path="/pontos" element={<Layout pagina={<IndexPoints />} />} />
         <Route path="*" element={<h1>404 - Página não encontrada</h1>} />
       </Routes>
     </BrowserRouter>
