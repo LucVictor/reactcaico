@@ -8,6 +8,12 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
+// 1. Importa Day.js e o locale pt-br
+import dayjs from 'dayjs';
+import 'dayjs/locale/pt-br';
+
+// Configura o Day.js para usar o locale pt-br
+dayjs.locale('pt-br');
 
 interface ProdutoConferidoProps {
   id: number;
@@ -40,21 +46,32 @@ export default function GraficoConferenciasDia({
   function agruparDados() {
     const agrupado: Record<string, DadosAgrupadosProps> = {};
 
+    // Função auxiliar para processar e formatar a data
+    const processarItem = (item: { created_date: string }) => {
+      // 2. Chave de agrupamento e ordenação: YYYY-MM-DD
+      const diaChave = dayjs(item.created_date).format("YYYY-MM-DD");
+      
+      // 3. Formato para exibição no gráfico: DD/MM/YYYY
+      const diaExibicao = dayjs(item.created_date).format("DD/MM/YYYY");
+
+      if (!agrupado[diaChave]) {
+        // Usa a data de exibição (DD/MM/YYYY) como o valor final da propriedade 'dia'
+        agrupado[diaChave] = { dia: diaExibicao, total_itens: 0 };
+      }
+      // A contagem é feita usando a chave YYYY-MM-DD
+      agrupado[diaChave].total_itens += 1;
+    };
+
     // Conta 1 item conferido por registro
-    produtosConferidos.forEach((item) => {
-      const dia = new Date(item.created_date).toISOString().split("T")[0];
-      if (!agrupado[dia]) agrupado[dia] = { dia, total_itens: 0 };
-      agrupado[dia].total_itens += 1;
-    });
+    produtosConferidos.forEach(processarItem);
 
     // Conta 1 work item por registro
-    workItems.forEach((item) => {
-      const dia = new Date(item.created_date).toISOString().split("T")[0];
-      if (!agrupado[dia]) agrupado[dia] = { dia, total_itens: 0 };
-      agrupado[dia].total_itens += 1;
-    });
+    workItems.forEach(processarItem);
 
-    return Object.values(agrupado).sort((a, b) => a.dia.localeCompare(b.dia));
+    // 4. Ordenação: usa a data YYYY-MM-DD da chave para garantir a ordem cronológica
+    return Object.keys(agrupado)
+      .sort() // Ordena as chaves (datas YYYY-MM-DD) em ordem crescente
+      .map(chave => agrupado[chave]); // Mapeia de volta para o array de valores
   }
 
   useEffect(() => {
@@ -69,7 +86,8 @@ export default function GraficoConferenciasDia({
           margin={{ top: 20, right: 24, left: 0, bottom: 5 }}
         >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="dia" />
+          {/* O XAxis usa a chave 'dia', que agora é formatada como DD/MM/YYYY */}
+          <XAxis dataKey="dia" /> 
           <YAxis />
           <Tooltip />
           <Line

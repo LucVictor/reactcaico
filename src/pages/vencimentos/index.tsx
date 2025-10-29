@@ -2,6 +2,9 @@ import React, { ReactNode, useEffect, useCallback, useState } from "react";
 import { CadastrarVencimento } from "./cadastrar";
 import { EditarVencimento } from "./editar";
 import api from "../../api";
+import dayjs from 'dayjs'
+// Importa o plugin 'localeData' e 'pt-br' para formatação em português
+import 'dayjs/locale/pt-br'; 
 import { useLocalDeEstoque } from "../localEstoque";
 import {
   Table,
@@ -18,6 +21,9 @@ import {
   Spinner,
 } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
+
+// Configura o Day.js para usar o locale pt-br
+dayjs.locale('pt-br');
 
 export interface ProdutoVencimento {
   product_code: number;
@@ -38,13 +44,17 @@ function TableComponent() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const calcularDiasRestantes = useCallback((validade: Date): number => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const validadeNormalizada = new Date(validade);
-    validadeNormalizada.setHours(0, 0, 0, 0);
-    const diffMs = validadeNormalizada.getTime() - hoje.getTime();
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  // 1. Função calcularDiasRestantes adaptada para Day.js
+  const calcularDiasRestantes = useCallback((validade: string): number => {
+    // dayjs().startOf('day') obtém a data de hoje à 00:00:00 no fuso horário local.
+    const hoje = dayjs().startOf('day');
+    const validadeNormalizada = dayjs(validade).startOf('day');
+
+    // .diff(outraData, 'day', true) calcula a diferença em dias com casas decimais (float).
+    const diffFloat = validadeNormalizada.diff(hoje, 'day', true);
+
+    // Math.ceil() é mantido para replicar o comportamento original (dar 1 dia a mais se a validade não for no passado)
+    return Math.ceil(diffFloat);
   }, []);
 
   const buscarVencimentos = useCallback(async () => {
@@ -58,12 +68,14 @@ function TableComponent() {
         .filter((e) => e.local === idLocal)
         .sort(
           (a, b) =>
-            new Date(a.shelflife_date).getTime() -
-            new Date(b.shelflife_date).getTime(),
+            // 2. Ordenação: usa .valueOf() do Day.js para comparar timestamps (milissegundos)
+            dayjs(a.shelflife_date).valueOf() -
+            dayjs(b.shelflife_date).valueOf(),
         )
         .map((item) => ({
           ...item,
-          diasRestantes: calcularDiasRestantes(new Date(item.shelflife_date)),
+          // 3. Chamada da função de cálculo
+          diasRestantes: calcularDiasRestantes(item.shelflife_date),
         }));
 
       setProdutos(dadosProcessados);
@@ -138,12 +150,12 @@ function TableComponent() {
                     {produto.diasRestantes}
                   </TableCell>
                   <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
-                    {new Date(produto.shelflife_date).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                    {/* 4. Formatação de data Day.js: 'DD/MM/YYYY' */}
+                    { dayjs(produto.shelflife_date).format('DD/MM/YYYY')}
                   </TableCell>
                   <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
-                    {new Date(produto.last_mod).toLocaleDateString("pt-BR")}
+                    {/* 5. Formatação de data Day.js: 'DD/MM/YYYY' */}
+                    { dayjs(produto.last_mod).format('DD/MM/YYYY')}
                   </TableCell>
                   <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
                     <div className="flex justify-center gap-1">
@@ -261,7 +273,8 @@ function BotaoExcluir({ produto, onAtualizar }: BotaoExcluirProps) {
           <p className="text-center text-gray-800 dark:text-gray-100">
             Deseja realmente excluir o produto{" "}
             <strong>{produto.product_name}</strong> com validade em{" "}
-            {new Date(produto.shelflife_date).toLocaleDateString("pt-BR")}?
+            {/* 6. Formatação de data Day.js: 'DD/MM/YYYY' */}
+            {dayjs(produto.shelflife_date).format("DD/MM/YYYY")}?
           </p>
         </ModalBody>
         <ModalFooter className="flex justify-around">

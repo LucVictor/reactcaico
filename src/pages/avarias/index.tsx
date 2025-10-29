@@ -20,6 +20,12 @@ import {
 import GraficoAvariasDia from "./grafico";
 import { CadastrarAvaria } from "./cadastrar";
 import api from "../../api";
+// 1. Importa Day.js e o locale pt-br
+import dayjs from 'dayjs';
+import 'dayjs/locale/pt-br';
+
+// 2. Configura o Day.js para usar o locale pt-br
+dayjs.locale('pt-br');
 
 export interface ProdutoAvariaProps {
   id: number;
@@ -85,8 +91,9 @@ function TableComponent() {
           .filter((e) => e.local == idLocal)
           .sort(
             (a, b) =>
-              new Date(b.damaged_date).getTime() -
-              new Date(a.damaged_date).getTime(),
+              // 3. Ordenação: usa dayjs().valueOf() para comparar timestamps (data mais recente primeiro)
+              dayjs(b.damaged_date).valueOf() -
+              dayjs(a.damaged_date).valueOf(),
           ) || [],
       );
       setCurrentPage(1); // 🔁 reinicia para a primeira página ao buscar
@@ -106,8 +113,9 @@ function TableComponent() {
           .filter((e) => e.local == idLocal)
           .sort(
             (a, b) =>
-              new Date(b.damaged_date).getTime() -
-              new Date(a.damaged_date).getTime(),
+              // 4. Ordenação: usa dayjs().valueOf() para comparar timestamps (data mais recente primeiro)
+              dayjs(b.damaged_date).valueOf() -
+              dayjs(a.damaged_date).valueOf(),
           ) || [],
       );
       setCurrentPage(1); // 🔁 reinicia para a primeira página ao filtrar
@@ -131,9 +139,11 @@ function TableComponent() {
     carregarDadosIniciais();
   }, [buscarAvarias]);
 
+  // 5. Função de formatação de data adaptada para Day.js
   const formatarData = (data: string) => {
-    const [ano, mes, dia] = data.split("T")[0].split("-");
-    return `${dia}/${mes}/${ano}`;
+    // dayjs(data) parseia a string da data
+    // .format('DD/MM/YYYY') formata para o padrão PT-BR
+    return dayjs(data).format('DD/MM/YYYY');
   };
 
   const formatarMoeda = (valor: number) =>
@@ -203,6 +213,7 @@ function TableComponent() {
                   key={produto.id}
                   className="bg-white dark:border-gray-700 dark:bg-gray-800"
                 >
+                  {/* 6. Uso da função formatarData (agora com Day.js) */}
                   <TableCell>{formatarData(produto.damaged_date)}</TableCell>
                   <TableCell>{produto.product_code}</TableCell>
                   <TableCell>{produto.product_name}</TableCell>
@@ -306,7 +317,8 @@ function BotaoExcluir({
         <ModalBody>
           <p className="text-center text-white">
             Deseja excluir o produto <strong>{produto.product_name}</strong> (
-            {new Date(produto.created_date).toLocaleDateString("pt-BR")})?
+            {/* 7. Formatação de data Day.js no Modal de Exclusão */}
+            {dayjs(produto.created_date).format("DD/MM/YYYY")})?
           </p>
         </ModalBody>
         <ModalFooter className="flex justify-around">

@@ -1,5 +1,6 @@
 // index.tsx
 import { useEffect, useState } from "react";
+import { useAuthStore } from "../authStore";
 import { CadastrarConferencia } from "./cadastrar";
 import {
   Button,
@@ -13,6 +14,8 @@ import {
 import TabelaDinamica from "./tabela";
 import api from "../../api";
 import GraficoConferenciasDia from "./grafico";
+// 1. Importa Day.js
+import dayjs from 'dayjs';
 
 export interface ProdutoConferidoProps {
   id: number;
@@ -32,12 +35,17 @@ export default function TableComponent() {
   >([]);
   const [workItems, setWorkItems] = useState<ProdutoConferidoProps[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const user = useAuthStore((state) => state.user);
 
+  // 2. Função adaptada para usar Day.js para comparação de datas
   const totalProdutosConferidosDia = () => {
-    const hoje = new Date().toISOString().split("T")[0];
+    // dayjs().format('YYYY-MM-DD') obtém a data atual no formato da API
+    const hojeFormatado = dayjs().format("YYYY-MM-DD");
+    
     return [...produtosConferidos, ...workItems].filter(
-      (d) => d.created_date === hoje,
-    ).length;
+      // Compara a data de criação (created_date) com a data de hoje formatada
+      (d) => d.created_date.split("T")[0] === hojeFormatado && d.created_by == user?.name
+    ).length; 
   };
 
   const produtosConferidosHoje = totalProdutosConferidosDia();
@@ -66,8 +74,8 @@ export default function TableComponent() {
         }),
       );
 
-      setProdutosConferidos(conferidos.data);
-      setWorkItems(workNormalized);
+      setProdutosConferidos(conferidos.data.filter((d:ProdutoConferidoProps) => d.created_by == user?.name));
+      setWorkItems(workNormalized.filter((d) => d.created_by == user?.name));
     } catch (err) {
       console.error(err);
       setProdutosConferidos([]);

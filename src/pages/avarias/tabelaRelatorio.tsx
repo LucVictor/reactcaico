@@ -9,6 +9,12 @@ import {
   TableRow,
   Card,
 } from "flowbite-react";
+// 1. Importa Day.js
+import dayjs from 'dayjs';
+// 2. Importa e configura o locale pt-br
+import 'dayjs/locale/pt-br';
+dayjs.locale('pt-br');
+
 
 export interface ProdutoAvariasProps {
   id: number;
@@ -40,10 +46,12 @@ function TabelaRelatorio({
     }
     setSomaCustoTotal(somatorio(dadosRelatorio));
   }, [dadosRelatorio]);
+
+  // 3. Função de formatação de data adaptada para Day.js
   const formatarData = (data: string) => {
-    // Pega só a parte YYYY-MM-DD
-    const [ano, mes, dia] = data.split("T")[0].split("-");
-    return `${dia}/${mes}/${ano}`;
+    // dayjs(data) parseia a string da data
+    // .format('DD/MM/YYYY') formata para o padrão PT-BR
+    return dayjs(data).format('DD/MM/YYYY');
   };
 
   const formatarMoeda = (valor: number) =>
@@ -56,7 +64,7 @@ function TabelaRelatorio({
     <div className="overflow-x-auto">
       <div className="container text-center text-white">
         <Card>
-          <p>Somatório do custo total de avarias é R${somaCustoTotal}</p>
+          <p>Somatório do custo total de avarias é **{formatarMoeda(somaCustoTotal)}**</p>
         </Card>
       </div>
       <Table className="border border-gray-700 text-center">
@@ -75,6 +83,7 @@ function TabelaRelatorio({
               key={index}
               className="bg-white dark:border-gray-700 dark:bg-gray-800"
             >
+              {/* 4. Uso da função formatarData (agora com Day.js) */}
               <TableCell>{formatarData(produto.damaged_date)}</TableCell>
               <TableCell className="font-medium whitespace-nowrap">
                 {produto.product_code}

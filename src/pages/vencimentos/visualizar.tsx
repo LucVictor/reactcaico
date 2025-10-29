@@ -14,6 +14,12 @@ import {
 import html2canvas from "html2canvas";
 import api from "../../api";
 import "./visualizar.css";
+// 1. Importa Day.js e o locale pt-br
+import dayjs from 'dayjs';
+import 'dayjs/locale/pt-br';
+
+// 2. Configura o Day.js para usar o locale pt-br
+dayjs.locale('pt-br');
 
 interface ProdutoVencimento {
   id: number;
@@ -32,13 +38,18 @@ const PaginaImpressaoVencimentos: React.FC = () => {
   const [idLocal, setIdLocal] = useState<number>(1);
   const tabelaRef = useRef<HTMLDivElement>(null);
 
-  const calcularDiasRestantes = useCallback((validade: Date): number => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const validadeNormalizada = new Date(validade);
-    validadeNormalizada.setHours(0, 0, 0, 0);
-    const diffMs = validadeNormalizada.getTime() - hoje.getTime();
-    return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  // 3. Função calcularDiasRestantes adaptada para Day.js
+  const calcularDiasRestantes = useCallback((validade: string): number => {
+    // dayjs().startOf('day') obtém a data de hoje à 00:00:00 no fuso horário local.
+    const hoje = dayjs().startOf('day');
+    // Cria o objeto dayjs para a data de validade e normaliza
+    const validadeNormalizada = dayjs(validade).startOf('day'); 
+
+    // Calcula a diferença em dias (float)
+    const diffFloat = validadeNormalizada.diff(hoje, 'day', true); 
+
+    // Mantém Math.ceil() para replicar o comportamento original (arredondar para cima)
+    return Math.ceil(diffFloat);
   }, []);
 
   const buscarVencimentos = useCallback(async () => {
@@ -51,12 +62,14 @@ const PaginaImpressaoVencimentos: React.FC = () => {
         .filter((e) => e.local === idLocal)
         .sort(
           (a, b) =>
-            new Date(a.shelflife_date).getTime() -
-            new Date(b.shelflife_date).getTime(),
+            // 4. Ordenação: usa .valueOf() do Day.js para comparar timestamps (milissegundos)
+            dayjs(a.shelflife_date).valueOf() -
+            dayjs(b.shelflife_date).valueOf(),
         )
         .map((item) => ({
           ...item,
-          diasRestantes: calcularDiasRestantes(new Date(item.shelflife_date)),
+          // 5. Chamada da função de cálculo
+          diasRestantes: calcularDiasRestantes(item.shelflife_date),
         }));
 
       setProdutos(dadosProcessados);
@@ -77,6 +90,14 @@ const PaginaImpressaoVencimentos: React.FC = () => {
       const printContents = tabelaRef.current.innerHTML;
       const janela = window.open("", "_blank");
       if (janela) {
+        // Mapeamento dos locais para o título do relatório
+        const nomeLocal = {
+          1: "Matriz",
+          2: "Parnamirim",
+          3: "Zona Norte",
+          4: "Lagoa Nova",
+        }[idLocal];
+
         janela.document.write(`
           <html>
             <head>
@@ -119,14 +140,7 @@ const PaginaImpressaoVencimentos: React.FC = () => {
               </style>
             </head>
             <body>
-              <h2>Relatório de Vencimentos - ${
-                {
-                  1: "Matriz",
-                  2: "Parnamirim",
-                  3: "Zona Norte",
-                  4: "Lagoa Nova",
-                }[idLocal]
-              }</h2>
+              <h2>Relatório de Vencimentos - ${nomeLocal}</h2>
               ${printContents}
             </body>
           </html>
@@ -267,12 +281,12 @@ const PaginaImpressaoVencimentos: React.FC = () => {
                     {produto.diasRestantes}
                   </TableCell>
                   <TableCell className="p-2 md:p-4">
-                    {new Date(produto.shelflife_date).toLocaleDateString(
-                      "pt-BR",
-                    )}
+                    {/* 6. Formatação de data Day.js: 'DD/MM/YYYY' */}
+                    {dayjs(produto.shelflife_date).format('DD/MM/YYYY')}
                   </TableCell>
                   <TableCell className="hidden p-2 md:table-cell md:p-4">
-                    {new Date(produto.last_mod).toLocaleDateString("pt-BR")}
+                    {/* 7. Formatação de data Day.js: 'DD/MM/YYYY' */}
+                    {dayjs(produto.last_mod).format('DD/MM/YYYY')}
                   </TableCell>
                 </TableRow>
               ))}
