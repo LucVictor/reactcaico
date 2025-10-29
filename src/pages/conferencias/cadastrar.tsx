@@ -111,7 +111,6 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
           type="number"
           step={0.01}
           placeholder="Digite a quantidade física"
-          value={quantidade_fisico || ""}
           onChange={(e) => setQuantidade_fisico(Number(e.target.value))}
           required
         />
@@ -124,7 +123,6 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
           type="number"
           step={0.01}
           placeholder="Digite a quantidade no sistema"
-          value={quantidade_sistema ?? ""}
           onChange={(e) => setQuantidade_sistema(Number(e.target.value))}
           required
         />
