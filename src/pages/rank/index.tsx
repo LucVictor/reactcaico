@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
 import {
   Card,
   Table,
@@ -14,13 +16,17 @@ import api, { API_URL } from "../../api";
 import { useAuthStore } from "../authStore";
 import avatar from "../../static/user.png";
 
+dayjs.locale("pt-br");
+
 export interface PontosProps {
   user_id: number;
-  name: string;
-  action_id: number;
-  created_date: string;
   id: number;
+  action_id: number;
+  local_id: number;
   value: number;
+  time_stamp: string;
+  name: string;
+  product_code: number;
 }
 
 interface RankingProps {
@@ -31,15 +37,13 @@ interface RankingProps {
 
 const generateLast12Months = () => {
   const months: { label: string; value: string }[] = [];
-  const now = new Date();
+  const now = dayjs();
   for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthValue = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const monthLabel = d.toLocaleString("pt-BR", {
-      month: "long",
-      year: "numeric",
+    const d = now.subtract(i, "month");
+    months.push({
+      label: d.format("MMMM [de] YYYY"),
+      value: d.format("YYYY-MM"),
     });
-    months.push({ label: monthLabel, value: monthValue });
   }
   return months;
 };
@@ -47,10 +51,9 @@ const generateLast12Months = () => {
 function PointsComponente() {
   const [pontos, setPontos] = useState<PontosProps[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  });
+  const [selectedMonth, setSelectedMonth] = useState<string>(() =>
+    dayjs().format("YYYY-MM"),
+  );
   const { user } = useAuthStore();
   const months = generateLast12Months();
 
@@ -70,37 +73,35 @@ function PointsComponente() {
     handlePoints();
   }, [selectedMonth]);
 
+  // Filtrar pontos do usuário logado
   const pontosDoUsuario = pontos.filter((p) => p.user_id === user?.id);
 
-  const pontosFiltrados = pontosDoUsuario.filter((p) => {
-    const d = new Date(p.created_date);
-    const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    return yearMonth === selectedMonth;
-  });
+  // Filtrar pontos do mês selecionado
+  const pontosFiltrados = pontosDoUsuario.filter((p) =>
+    dayjs(p.time_stamp).isSame(selectedMonth, "month"),
+  );
 
+  // Total de pontos do usuário
   const totalPontos = pontosFiltrados.reduce(
     (acc, p) => acc + (Number(p.value) || 0),
     0,
   );
 
+  // Últimos 5 pontos
   const ultimos5 = [...pontosFiltrados]
     .sort(
-      (a, b) =>
-        new Date(b.created_date).getTime() - new Date(a.created_date).getTime(),
+      (a, b) => dayjs(b.time_stamp).valueOf() - dayjs(a.time_stamp).valueOf(),
     )
     .slice(0, 5);
 
+  // Ranking geral
   const ranking = pontos
-    .filter((p) => {
-      const d = new Date(p.created_date);
-      const yearMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      return yearMonth === selectedMonth;
-    })
+    .filter((p) => dayjs(p.time_stamp).isSame(selectedMonth, "month"))
     .reduce((acc: { [key: number]: RankingProps }, ponto) => {
       if (!acc[ponto.user_id]) {
         acc[ponto.user_id] = {
           user_id: ponto.user_id,
-          name: String(ponto.user_id),
+          name: `Usuário ${ponto.user_id}`,
           totalPoints: 0,
         };
       }
@@ -108,20 +109,20 @@ function PointsComponente() {
       return acc;
     }, {});
 
-  // Converter o objeto de ranking em array e ordenar
   const rankingArray = Object.values(ranking).sort(
     (a, b) => b.totalPoints - a.totalPoints,
   );
 
-  // Encontrar o valor máximo de pontos para normalizar as barras
-  const maxPoints = Math.max(...rankingArray.map((r) => r.totalPoints), 1); // Evita divisão por zero
+  const maxPoints = Math.max(...rankingArray.map((r) => r.totalPoints), 1);
 
   return (
     <div className="flex items-start justify-start gap-3 self-center">
+      {/* Painel do usuário */}
       <div className="m-auto flex w-fit max-w-full flex-col gap-4 overflow-x-auto rounded-2xl bg-gray-100 p-5 shadow-lg dark:bg-gray-800">
         <h2 className="text-center text-3xl font-bold text-gray-900 dark:text-white">
           Sistema de Pontos
         </h2>
+
         <div className="mb-4 flex items-center justify-center gap-2">
           <label className="font-medium text-gray-700 dark:text-gray-200">
             Filtrar por mês:
@@ -138,6 +139,7 @@ function PointsComponente() {
             ))}
           </select>
         </div>
+
         {loading ? (
           <div className="flex h-40 items-center justify-center">
             <Spinner size="xl" />
@@ -153,6 +155,7 @@ function PointsComponente() {
               <h3 className="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
                 Últimos 5 pontos registrados
               </h3>
+
               {ultimos5.length > 0 ? (
                 <Table striped hoverable>
                   <TableHead>
@@ -167,16 +170,7 @@ function PointsComponente() {
                         className="bg-white dark:border-gray-700 dark:bg-gray-800"
                       >
                         <TableCell>
-                          {new Date(ponto.created_date).toLocaleString(
-                            "pt-BR",
-                            {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
+                          {dayjs(ponto.time_stamp).format("DD/MM/YYYY HH:mm")}
                         </TableCell>
                         <TableCell className="font-medium text-gray-900 dark:text-white">
                           {ponto.name}
@@ -197,15 +191,21 @@ function PointsComponente() {
           </>
         )}
       </div>
+
+      {/* Ranking */}
       <div className="flex flex-col gap-4 overflow-x-auto rounded-2xl bg-gray-100 p-5 shadow-lg dark:bg-gray-800">
         <h3 className="mb-2 text-xl font-semibold text-gray-800 dark:text-gray-100">
           Ranking de Pontos (
           {months.find((m) => m.value === selectedMonth)?.label})
         </h3>
+
         {rankingArray.length > 0 ? (
-          <div className="ranking-chart">
-            {rankingArray.map((rank) => (
-              <div key={rank.user_id} className="mt-5 flex items-center gap-2">
+          <div className="ranking-chart w-96">
+            {rankingArray.map((rank, index) => (
+              <div
+                key={rank.user_id}
+                className="relative mt-5 flex items-center gap-2"
+              >
                 <Avatar
                   alt="User profile"
                   img={
@@ -214,12 +214,12 @@ function PointsComponente() {
                       : avatar
                   }
                   rounded
-                  className="h-6 w-8"
+                  className="h-8 w-8"
                 />
 
-                <div className="relative h-6 flex-1 rounded">
+                <div className="relative h-6 flex-1 overflow-hidden rounded bg-gray-300 dark:bg-gray-700">
                   <div
-                    className="h-6 rounded"
+                    className="h-6 rounded-l"
                     style={{
                       width: `${(rank.totalPoints / maxPoints) * 100}%`,
                       backgroundColor:
@@ -227,12 +227,17 @@ function PointsComponente() {
                       transition: "width 0.5s ease-in-out",
                     }}
                   />
-
-                  <span className="absolute top-1/2 left-2 -translate-y-1/2 transform text-sm font-bold text-white">
-                    {rank.user_id === user?.id ? "Você: " : "Desconhecido: "}
-                    {rank.totalPoints} pontos.
+                  <span className="absolute top-1/2 left-2 -translate-y-1/2 text-sm font-bold whitespace-nowrap text-white">
+                    {rank.user_id === user?.id
+                      ? "Você"
+                      : `Usuário ${rank.user_id}`}{" "}
+                    — {rank.totalPoints} pts
                   </span>
                 </div>
+
+                <span className="ml-2 font-bold text-gray-500">
+                  #{index + 1}
+                </span>
               </div>
             ))}
           </div>

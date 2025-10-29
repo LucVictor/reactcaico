@@ -14,8 +14,7 @@ import {
 import TabelaDinamica from "./tabela";
 import api from "../../api";
 import GraficoConferenciasDia from "./grafico";
-// 1. Importa Day.js
-import dayjs from 'dayjs';
+import dayjs from "dayjs";
 
 export interface ProdutoConferidoProps {
   id: number;
@@ -37,15 +36,13 @@ export default function TableComponent() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const user = useAuthStore((state) => state.user);
 
-  // 2. Função adaptada para usar Day.js para comparação de datas
   const totalProdutosConferidosDia = () => {
-    // dayjs().format('YYYY-MM-DD') obtém a data atual no formato da API
     const hojeFormatado = dayjs().format("YYYY-MM-DD");
-    
     return [...produtosConferidos, ...workItems].filter(
-      // Compara a data de criação (created_date) com a data de hoje formatada
-      (d) => d.created_date.split("T")[0] === hojeFormatado && d.created_by == user?.name
-    ).length; 
+      (d) =>
+        d.created_date.split("T")[0] === hojeFormatado &&
+        d.created_by == user?.name,
+    ).length;
   };
 
   const produtosConferidosHoje = totalProdutosConferidosDia();
@@ -54,9 +51,8 @@ export default function TableComponent() {
     setIsLoading(true);
     try {
       const conferidos = await api.get("/conference/");
-      const work = await api.get("/work_conference/items/"); // nova rota que retorna todos os work items do usuário
+      const work = await api.get("/work_conference/items/");
 
-      // Normaliza work items para a mesma interface de ProdutoConferidoProps
       const workNormalized: ProdutoConferidoProps[] = work.data.map(
         (w: any) => ({
           id: w.id,
@@ -74,7 +70,11 @@ export default function TableComponent() {
         }),
       );
 
-      setProdutosConferidos(conferidos.data.filter((d:ProdutoConferidoProps) => d.created_by == user?.name));
+      setProdutosConferidos(
+        conferidos.data.filter(
+          (d: ProdutoConferidoProps) => d.created_by == user?.name,
+        ),
+      );
       setWorkItems(workNormalized.filter((d) => d.created_by == user?.name));
     } catch (err) {
       console.error(err);
@@ -91,27 +91,29 @@ export default function TableComponent() {
 
   if (isLoading) {
     return (
-      <div className="m-auto flex h-fit w-1/5 items-center justify-center py-16">
+      <div className="flex h-screen w-full items-center justify-center">
         <Spinner size="xl" aria-label="Loading..." />
       </div>
     );
   }
 
   return (
-    <div className="m-5 flex w-full max-w-full flex-col gap-4 overflow-x-auto opacity-95">
-      <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
-        <Card className="w-full text-center">
+    <div className="flex w-full flex-col items-center gap-6 p-5 opacity-95">
+      {/* Cards de informações */}
+      <div className="flex w-full flex-col items-center gap-6 md:flex-row md:justify-center">
+        <Card className="w-full max-w-sm text-center">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Informações Gerais
           </h2>
-          <p className="font-normal text-gray-700 dark:text-gray-400">
+          <p className="mt-2 font-normal text-gray-700 dark:text-gray-400">
             <Badge className="m-auto w-fit">
               Total de produtos conferidos hoje: {produtosConferidosHoje}
             </Badge>
           </p>
         </Card>
 
-        <Card>
+        <Card className="h-96 w-full max-w-2xl">
+          {/* Card maior para o gráfico */}
           <GraficoConferenciasDia
             produtosConferidos={produtosConferidos}
             workItems={workItems}
@@ -119,11 +121,21 @@ export default function TableComponent() {
         </Card>
       </div>
 
-      <Card className="w-full">
+      {/* Botão Cadastrar centralizado */}
+      <div className="flex w-full max-w-6xl justify-end">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-700 p-3 text-white dark:bg-gray-700">
+          <h3 className="mb-2 w-full text-center">Opções:</h3>
+          <div className="m-auto w-fit">
+            <BotaoCadastrar onAtualizar={fetchAll} />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela centralizada e maior */}
+      <Card className="w-full max-w-6xl overflow-x-auto">
         <h2 className="text-center text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
           Listagem:
         </h2>
-        <BotaoCadastrar onAtualizar={fetchAll} />
         <TabelaDinamica produtos={[...produtosConferidos, ...workItems]} />
       </Card>
     </div>
@@ -139,11 +151,11 @@ function BotaoCadastrar({ onAtualizar }: BotaoCadastrarProps) {
 
   const handleClose = () => {
     setOpenModal(false);
-    onAtualizar(); // refaz o fetch ao fechar
+    onAtualizar();
   };
 
   return (
-    <div className="m-1 flex justify-end">
+    <div className="flex justify-center">
       <Button color="green" size="sm" onClick={() => setOpenModal(true)}>
         Cadastrar
       </Button>

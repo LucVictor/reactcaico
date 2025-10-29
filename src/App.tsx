@@ -13,7 +13,8 @@ import IndexMetas from "./pages/metas";
 import Tarefas from "./pages/tarefas";
 import VisualizarVencimentos from "./pages/vencimentos/visualizar";
 import IndexPoints from "./pages/rank/index";
-
+import LogsPagina from "./pages/admin/logs";
+import PointsPagina from "./pages/admin/points";
 function App() {
   const checkToken = useAuthStore.getState().checkTokenValidity;
   checkToken();
@@ -117,6 +118,14 @@ function App() {
 
         <Route path="/pontos" element={<Layout pagina={<IndexPoints />} />} />
         <Route path="*" element={<h1>404 - Página não encontrada</h1>} />
+        <Route
+          path="/admin/logs"
+          element={<Layout pagina={<LogsPagina />} />}
+        />
+        <Route
+          path="/admin/pontos"
+          element={<Layout pagina={<PointsPagina />} />}
+        />
       </Routes>
     </BrowserRouter>
   );

@@ -141,7 +141,7 @@ export default function Layout({ pagina }: paginaProps) {
       <div className="background-animado"></div>
 
       {/* Página */}
-      <div className="flex justify-center">{pagina}</div>
+      <div>{pagina}</div>
     </div>
   );
 }
