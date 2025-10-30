@@ -235,7 +235,7 @@ const PointsPagina: React.FC = () => {
       {/* Tabela */}
       {loading ? (
         <div className="flex min-h-screen items-center justify-center text-lg font-semibold">
-          Carregando pontos...
+          Carregando pontos....
         </div>
       ) : error ? (
         <div className="flex min-h-screen items-center justify-center font-semibold text-red-500">
