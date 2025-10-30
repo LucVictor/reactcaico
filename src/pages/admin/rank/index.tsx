@@ -18,7 +18,13 @@ import {
   ModalHeader,
   Select,
 } from "flowbite-react";
-import { HiCalendar, HiOfficeBuilding, HiUserGroup } from "react-icons/hi";
+import {
+  HiCalendar,
+  HiOfficeBuilding,
+  HiUserGroup,
+  HiDownload,
+} from "react-icons/hi";
+import { saveAs } from "file-saver";
 import api, { API_URL } from "../../../api";
 import avatar from "../../../static/user.png";
 
@@ -57,7 +63,7 @@ const generateLast12Months = () => {
       value: d.format("YYYY-MM"),
     });
   }
-  return months;
+  return months.reverse(); // mais antigo → mais recente
 };
 
 /* ---------- COMPONENTE PRINCIPAL ---------- */
@@ -214,7 +220,27 @@ export default function AdminPoints() {
     1,
   );
 
-  /* ---------- DETALHES DO USUÁRIO ---------- */
+  /* ---------- EXPORTAÇÃO CSV ---------- */
+  const exportToCSV = () => {
+    const data = viewMode === "users" ? rankingUsuarios : rankingLojas;
+    const headers =
+      viewMode === "users"
+        ? ["Posição", "Nome", "Total de Pontos", "Tipos"]
+        : ["Posição", "Loja", "Total de Pontos", "Tipos"];
+
+    const rows = data.map((item, idx) => {
+      const types = Object.entries((item as any).pointsByType)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(" | ");
+      return [idx + 1, item.name, item.totalPoints, types];
+    });
+
+    const csv = [headers, ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, `ranking_${viewMode}_${selectedMonth}.csv`);
+  };
+
+  /* ---------- DETALHES ---------- */
   const handleUserDetails = (user_id: number) => {
     const userPoints = pontos
       .filter((p) => p.user_id === user_id)
@@ -226,19 +252,15 @@ export default function AdminPoints() {
     setOpenModal(true);
   };
 
-  /* ---------- DETALHES DA LOJA (com ranking interno) ---------- */
   const handleStoreDetails = (local_id: number) => {
     const storeData = rankingLojas.find((l) => l.local_id === local_id);
     if (!storeData) return;
-
     setSelectedStore(storeData);
     setOpenStoreModal(true);
   };
 
-  // Ranking interno da loja
   const rankingInternoLoja = useMemo(() => {
     if (!selectedStore) return [];
-
     const usersInStore = pontos
       .filter((p) => p.local_id === selectedStore.local_id)
       .reduce(
@@ -271,7 +293,6 @@ export default function AdminPoints() {
         },
         {},
       );
-
     return Object.values(usersInStore).sort(
       (a, b) => b.totalPoints - a.totalPoints,
     );
@@ -285,7 +306,7 @@ export default function AdminPoints() {
   /* ---------- RENDER ---------- */
   return (
     <div className="m-5 flex flex-col items-center gap-6">
-      {/* CABEÇALHO + FILTRO */}
+      {/* CABEÇALHO + FILTRO + EXPORTAÇÃO */}
       <Card className="w-full max-w-4xl bg-white p-6 shadow-md dark:bg-gray-700">
         <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
           Sistema de Pontos — Admin
@@ -312,7 +333,7 @@ export default function AdminPoints() {
               size="sm"
               color={viewMode === "users" ? "purple" : "gray"}
               onClick={() => setViewMode("users")}
-              className="flex items-center gap-1 transition-all"
+              className="flex items-center gap-1"
             >
               <HiUserGroup className="h-4 w-4" />
               Usuários
@@ -321,18 +342,27 @@ export default function AdminPoints() {
               size="sm"
               color={viewMode === "stores" ? "teal" : "gray"}
               onClick={() => setViewMode("stores")}
-              className="flex items-center gap-1 transition-all"
+              className="flex items-center gap-1"
             >
               <HiOfficeBuilding className="h-4 w-4" />
               Lojas
             </Button>
           </div>
+
+          <Button
+            size="sm"
+            color="green"
+            onClick={exportToCSV}
+            className="flex items-center gap-1"
+          >
+            <HiDownload className="h-4 w-4" />
+            CSV
+          </Button>
         </div>
       </Card>
 
-      {/* ------------------- RANKING DINÂMICO ------------------- */}
+      {/* RANKING DINÂMICO */}
       {viewMode === "stores" ? (
-        /* ==== RANKING DE LOJAS ==== */
         <Card className="w-full bg-gradient-to-br from-teal-50 to-cyan-50 p-6 shadow-lg dark:bg-gray-800 dark:from-teal-900 dark:to-cyan-900">
           <h3 className="mb-4 text-xl font-semibold text-teal-800 dark:text-teal-100">
             Ranking por Loja (
@@ -408,7 +438,6 @@ export default function AdminPoints() {
           )}
         </Card>
       ) : (
-        /* ==== RANKING DE USUÁRIOS ==== */
         <Card className="w-full bg-gray-100 p-6 shadow-lg dark:bg-gray-800">
           <h3 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-100">
             Ranking por Usuário (
@@ -494,7 +523,7 @@ export default function AdminPoints() {
         </Card>
       )}
 
-      {/* ------------------- MODAL USUÁRIO ------------------- */}
+      {/* MODAL USUÁRIO */}
       <Modal show={openModal} onClose={() => setOpenModal(false)} size="5xl">
         <ModalHeader>
           {selectedUser && selectedUser.length > 0
@@ -540,7 +569,7 @@ export default function AdminPoints() {
         </ModalFooter>
       </Modal>
 
-      {/* ------------------- MODAL LOJA (RANK INTERNO) ------------------- */}
+      {/* MODAL LOJA */}
       <Modal
         show={openStoreModal}
         onClose={() => setOpenStoreModal(false)}
