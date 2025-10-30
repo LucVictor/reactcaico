@@ -74,7 +74,7 @@ export const routes: AppRoute[] = [
   },
   {
     path: "/vencimentos/visualizar",
-    element: <Layout pagina={<VisualizarVencimentos />} />,
+    element: <VisualizarVencimentos />,
     protected: false,
   },
   {
