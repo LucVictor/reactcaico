@@ -128,9 +128,28 @@ export default function Layout({ pagina }: paginaProps) {
             <DropdownItem onClick={() => navigate("/profile")}>
               <span className="block text-sm">Perfil</span>
             </DropdownItem>
-            <DropdownItem onClick={() => navigate("/metas/conferencia")}>
-              <span className="block text-sm">Conferencias</span>
-            </DropdownItem>
+            {user?.admin == 1 ? (
+              <DropdownItem onClick={() => navigate("/admin/Logs")}>
+                <span className="block text-sm">Adm: Logs</span>
+              </DropdownItem>
+            ) : (
+              ""
+            )}
+            {user?.admin == 1 ? (
+              <DropdownItem onClick={() => navigate("/admin/pontos")}>
+                <span className="block text-sm">Adm: Pontos</span>
+              </DropdownItem>
+            ) : (
+              ""
+            )}
+            {user?.admin == 1 ? (
+              <DropdownItem onClick={() => navigate("/admin/rank")}>
+                <span className="block text-sm">Adm: Rank</span>
+              </DropdownItem>
+            ) : (
+              ""
+            )}
+
             <DropdownDivider />
             <DropdownItem onClick={logout}>Sair</DropdownItem>
           </Dropdown>

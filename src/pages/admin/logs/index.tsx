@@ -12,6 +12,9 @@ import {
   TableRow,
   TableBody,
   TableCell,
+  Label,
+  Select,
+  TextInput,
 } from "flowbite-react";
 import api from "../../../api";
 
@@ -20,7 +23,6 @@ interface Log {
   action: string;
   description: string;
   user_id: number;
-  user_name: string;
   time_stamp: string;
 }
 
@@ -45,34 +47,80 @@ interface LoginHistory {
   created_at: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  username: string;
+  email: string;
+  profile_photo: string | null;
+  local: number;
+  admin: number;
+}
+
 const LogsPage: React.FC = () => {
   const [logs, setLogs] = useState<Log[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [analysis, setAnalysis] = useState<string[]>([]);
   const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
   const [loginHistory, setLoginHistory] = useState<LoginHistory[]>([]);
-  const [openModal, setOpenModal] = useState(false);
+  const [openLoginModal, setOpenLoginModal] = useState(false);
+  const [openActiveModal, setOpenActiveModal] = useState(false);
+
+  // Filtros: inicializados para mês atual (YYYY-MM)
+  const currentMonth = new Date().toISOString().slice(0, 10); // "YYYY-MM"
+  const [selectedUser, setSelectedUser] = useState<string>("");
+  const [date1, setDate1] = useState<string>(currentMonth);
+  const [date2, setDate2] = useState<string>(currentMonth);
 
   useEffect(() => {
+    // No mount: busca users, active users e logs do mês atual
     const fetchAll = async () => {
-      await Promise.all([fetchLogs(), fetchActiveUsers()]);
+      await Promise.all([
+        fetchUsers(),
+        fetchActiveUsers(),
+        fetchLogs({
+          date1: date1,
+          date2: date2,
+        }),
+      ]);
     };
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchLogs = async () => {
+  const fetchLogs = async (params?: {
+    user?: string;
+    date1?: string;
+    date2?: string;
+  }) => {
     try {
-      const res = await api.get("/logs");
-      if (Array.isArray(res.data)) {
-        setLogs(res.data);
-      } else {
-        // Caso o backend retorne apenas um objeto
-        setLogs([res.data]);
-      }
+      setLoading(true);
+      let url = "/logs/";
+
+      const queryParams = new URLSearchParams();
+      if (params?.user) queryParams.append("user", params.user);
+      if (params?.date1) queryParams.append("date1", params.date1);
+      if (params?.date2) queryParams.append("date2", params.date2);
+
+      if (queryParams.toString()) url += `?${queryParams.toString()}`;
+
+      const res = await api.get(url);
+      const resData: Log[] = await res.data;
+      setLogs(resData.sort((a: Log, b: Log) => b.id - a.id));
     } catch (err) {
       console.error("Erro ao buscar logs:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await api.get("/admin/users");
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Erro ao buscar usuários:", err);
     }
   };
 
@@ -89,10 +137,23 @@ const LogsPage: React.FC = () => {
     try {
       const res = await api.get("/admin/login-history");
       setLoginHistory(res.data);
-      setOpenModal(true);
+      setOpenLoginModal(true);
     } catch (err) {
       console.error("Erro ao buscar histórico de logins:", err);
     }
+  };
+
+  const handleFilter = () => {
+    fetchLogs({
+      user: selectedUser || undefined,
+      date1: date1 || undefined,
+      date2: date2 || undefined,
+    });
+  };
+
+  const getUserName = (user_id: number) => {
+    const user = users.find((u) => u.id === user_id);
+    return user ? `${user.name} (${user.username})` : `Usuário #${user_id}`;
   };
 
   const analyzeLogs = () => {
@@ -153,16 +214,73 @@ const LogsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="mb-6 text-3xl font-bold text-gray-700">
-        📜 Logs de Servidor
-      </h1>
+      {/* Filtros */}
+      <Card className="mb-6 border border-gray-200 shadow-sm">
+        <h1 className="mb-6 text-center text-3xl font-bold text-white">
+          📜 Logs de Servidor
+        </h1>
+        <h2 className="mb-3 text-lg font-semibold text-white">Filtros</h2>
+        <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-4">
+          <div>
+            <Label htmlFor="user">Usuário</Label>
+            <Select
+              id="user"
+              value={selectedUser}
+              onChange={(e) => setSelectedUser(e.target.value)}
+            >
+              <option value="">Todos</option>
+              {users.map((user) => (
+                <option key={user.id} value={user.id.toString()}>
+                  {user.name} ({user.username})
+                </option>
+              ))}
+            </Select>
+          </div>
 
-      <div className="mb-6 flex gap-4">
-        <Button onClick={analyzeLogs}>🔍 Análise Antifraude</Button>
-        <Button onClick={fetchLoginHistory} color="gray">
-          🕓 Histórico de Logins
-        </Button>
-      </div>
+          <div>
+            <Label htmlFor="date1">Data inicial</Label>
+            <TextInput
+              id="date1"
+              type="date"
+              value={date1}
+              onChange={(e) => setDate1(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="date2">Data final</Label>
+            <TextInput
+              id="date2"
+              type="date"
+              value={date2}
+              onChange={(e) => setDate2(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Button onClick={handleFilter} className="w-full">
+              🔎 Filtrar
+            </Button>
+          </div>
+        </div>
+        <div className="mt-6 mb-6 flex gap-4">
+          <Button onClick={analyzeLogs}>🔍 Análise Antifraude</Button>
+
+          {/* Botão Usuários Ativos (novo) */}
+          <Button
+            onClick={async () => {
+              await fetchActiveUsers();
+              setOpenActiveModal(true);
+            }}
+          >
+            👥 Usuários Ativos
+          </Button>
+
+          <Button onClick={fetchLoginHistory} color="gray">
+            🕓 Histórico de Logins
+          </Button>
+        </div>
+      </Card>
 
       {analysis.length > 0 && (
         <Card className="mb-6 border border-yellow-300 bg-yellow-50 shadow-md">
@@ -176,43 +294,6 @@ const LogsPage: React.FC = () => {
           </ul>
         </Card>
       )}
-
-      {/* Usuários Ativos */}
-      <Card className="mb-6 shadow-md">
-        <h2 className="mb-3 text-lg font-semibold text-gray-700">
-          👥 Usuários Ativos
-        </h2>
-        {activeUsers.length === 0 ? (
-          <p className="text-sm text-gray-500">
-            Nenhum usuário ativo no momento.
-          </p>
-        ) : (
-          <Table hoverable>
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Usuário</th>
-                <th>IP</th>
-                <th>Hostname</th>
-                <th>Login</th>
-                <th>Expira</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeUsers.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.username}</td>
-                  <td>{user.ip}</td>
-                  <td>{user.hostname}</td>
-                  <td>{new Date(user.login_time).toLocaleString()}</td>
-                  <td>{new Date(user.expires_at).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </Card>
 
       {/* Logs */}
       <Card className="shadow-md">
@@ -239,7 +320,7 @@ const LogsPage: React.FC = () => {
                 <TableRow key={log.id}>
                   <TableCell className="font-medium">{log.action}</TableCell>
                   <TableCell>{log.description}</TableCell>
-                  <TableCell>{log.user_name}</TableCell>
+                  <TableCell>{getUserName(log.user_id)}</TableCell>
                   <TableCell>
                     {new Date(log.time_stamp).toLocaleString()}
                   </TableCell>
@@ -251,7 +332,7 @@ const LogsPage: React.FC = () => {
       </Card>
 
       {/* Modal de Histórico de Logins */}
-      <Modal show={openModal} onClose={() => setOpenModal(false)}>
+      <Modal show={openLoginModal} onClose={() => setOpenLoginModal(false)}>
         <ModalHeader>🕓 Histórico de Logins</ModalHeader>
         <ModalBody>
           {loginHistory.length === 0 ? (
@@ -282,6 +363,43 @@ const LogsPage: React.FC = () => {
                         {item.message}
                       </td>
                       <td>{new Date(item.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )}
+        </ModalBody>
+      </Modal>
+
+      {/* Modal Usuários Ativos (aberto pelo botão) */}
+      <Modal show={openActiveModal} onClose={() => setOpenActiveModal(false)}>
+        <ModalHeader>👥 Usuários Ativos</ModalHeader>
+        <ModalBody>
+          {activeUsers.length === 0 ? (
+            <p className="text-gray-500">Nenhum usuário ativo no momento.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table hoverable>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Usuário</th>
+                    <th>IP</th>
+                    <th>Hostname</th>
+                    <th>Login</th>
+                    <th>Expira</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>{user.name}</td>
+                      <td>{user.username}</td>
+                      <td>{user.ip}</td>
+                      <td>{user.hostname}</td>
+                      <td>{new Date(user.login_time).toLocaleString()}</td>
+                      <td>{new Date(user.expires_at).toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
