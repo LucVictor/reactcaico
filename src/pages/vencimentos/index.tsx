@@ -110,7 +110,7 @@ function TableComponent() {
           </div>
 
           {/* Tabela */}
-          <div className="w-full max-w-6xl overflow-x-auto rounded-lg border border-gray-600 shadow-sm">
+          <div className="w-full max-w-6xl rounded-lg border border-gray-600 shadow-sm">
             <Table className="min-w-full text-center opacity-95">
               <TableHead>
                 <TableRow>
@@ -251,7 +251,7 @@ function BotaoExcluir({ produto, onAtualizar }: BotaoExcluirProps) {
       await api.delete(`/shelflife/${produto.id}`);
       alert("Produto deletado!");
       handleClose();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro ao excluir:", err);
     }
   };
