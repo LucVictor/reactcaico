@@ -77,33 +77,44 @@ function PointsComponente() {
   }, [selectedMonth]);
 
   /* ---------- DADOS DO USUÁRIO ---------- */
-  const pontosDoUsuario = useMemo(
-    () => pontos.filter((p) => p.user_id === user?.id),
-    [pontos, user?.id],
+  const pontosDoUsuarioNoMes = useMemo(
+    () =>
+      pontos.filter(
+        (p) =>
+          p.user_id === user?.id &&
+          dayjs(p.time_stamp).isSame(selectedMonth, "month"),
+      ),
+    [pontos, user?.id, selectedMonth],
   );
 
-  const pontosFiltrados = useMemo(() => {
-    if (filterMonth === "todos") return pontosDoUsuario;
-    return pontosDoUsuario.filter((p) =>
-      dayjs(p.time_stamp).isSame(filterMonth, "month"),
-    );
-  }, [pontosDoUsuario, filterMonth]);
-
-  const totalPontos = useMemo(
-    () => pontosFiltrados.reduce((acc, p) => acc + (Number(p.value) || 0), 0),
-    [pontosFiltrados],
+  const totalPontosDoMes = useMemo(
+    () =>
+      pontosDoUsuarioNoMes.reduce((acc, p) => acc + (Number(p.value) || 0), 0),
+    [pontosDoUsuarioNoMes],
   );
 
   const ultimos5 = useMemo(
     () =>
-      [...pontosDoUsuario]
+      [...pontos.filter((p) => p.user_id === user?.id)]
         .sort(
           (a, b) =>
             dayjs(b.time_stamp).valueOf() - dayjs(a.time_stamp).valueOf(),
         )
         .slice(0, 5),
-    [pontosDoUsuario],
+    [pontos, user?.id],
   );
+
+  const pontosDoUsuarioHistorico = useMemo(
+    () => pontos.filter((p) => p.user_id === user?.id),
+    [pontos, user?.id],
+  );
+
+  const pontosFiltradosHistorico = useMemo(() => {
+    if (filterMonth === "todos") return pontosDoUsuarioHistorico;
+    return pontosDoUsuarioHistorico.filter((p) =>
+      dayjs(p.time_stamp).isSame(filterMonth, "month"),
+    );
+  }, [pontosDoUsuarioHistorico, filterMonth]);
 
   /* ---------- RANKING GERAL ---------- */
   const ranking = useMemo(() => {
@@ -147,9 +158,22 @@ function PointsComponente() {
     return null;
   };
 
+  /* ---------- SPINNER GLOBAL ---------- */
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Spinner size="xl" />
+          <p className="dark:text-white">Carregando informações...</p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- CONTEÚDO PRINCIPAL ---------- */
   return (
-    <div className="m-3 rounded-2xl py-8 opacity-98 dark:bg-gray-600">
-      <div className="mx-auto max-w-7xl px-4">
+    <div className="m-3 rounded-2xl py-8 opacity-98">
+      <div className="mx-auto max-w-7xl rounded-2xl p-2 px-4 opacity-98 dark:bg-gray-800">
         <h1 className="mb-8 text-center text-3xl font-bold text-gray-800 dark:text-white">
           Sistema de Pontos
         </h1>
@@ -162,10 +186,10 @@ function PointsComponente() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-medium opacity-90">
-                    Seus Pontos
+                    Seus Pontos ({dayjs(selectedMonth).format("MMMM")})
                   </h3>
                   <p className="mt-1 text-5xl font-extrabold tracking-tight">
-                    {totalPontos}
+                    {totalPontosDoMes}
                   </p>
                 </div>
                 <HiTrendingUp className="h-14 w-14 opacity-30" />
@@ -181,11 +205,7 @@ function PointsComponente() {
                 </h3>
               </div>
 
-              {loading ? (
-                <div className="flex h-32 items-center justify-center">
-                  <Spinner size="lg" />
-                </div>
-              ) : ultimos5.length > 0 ? (
+              {ultimos5.length > 0 ? (
                 <div className="space-y-3">
                   {ultimos5.map((p) => (
                     <div
@@ -278,7 +298,7 @@ function PointsComponente() {
                           />
                           <div className="flex-1">
                             <p className="text-sm font-semibold text-gray-800 dark:text-white">
-                              {isUser ? "Você" : `Usuário ${rank.user_id}`}
+                              {isUser ? "Você" : `Usuário Desconhecido`}
                             </p>
                             <div className="flex items-center gap-2">
                               <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-600">
@@ -311,7 +331,7 @@ function PointsComponente() {
           </div>
         </div>
 
-        {/* ========== HISTÓRICO COMPLETO (com scroll) ========== */}
+        {/* ========== HISTÓRICO COMPLETO ========== */}
         <div className="mt-8">
           <Card className="p-6 shadow-xl">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -335,9 +355,8 @@ function PointsComponente() {
               </Select>
             </div>
 
-            {pontosFiltrados.length > 0 ? (
+            {pontosFiltradosHistorico.length > 0 ? (
               <div className="overflow-x-auto">
-                {/* Scroll vertical com altura máxima */}
                 <div className="scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 dark:scrollbar-thumb-gray-600 dark:scrollbar-track-gray-800 max-h-96 overflow-y-auto">
                   <Table hoverable striped className="min-w-full">
                     <TableHead>
@@ -355,7 +374,7 @@ function PointsComponente() {
                       </TableHeadCell>
                     </TableHead>
                     <TableBody>
-                      {pontosFiltrados
+                      {pontosFiltradosHistorico
                         .sort(
                           (a, b) =>
                             dayjs(b.time_stamp).valueOf() -
