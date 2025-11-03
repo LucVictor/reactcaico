@@ -93,9 +93,7 @@ export default function AdminPointsAnalytics() {
   );
 
   // Período 2
-  const [p2Start, setP2Start] = useState<Date>(
-    dayjs().subtract(15, "day").toDate(),
-  );
+  const [p2Start] = useState<Date>(dayjs().subtract(15, "day").toDate());
   const [p2End, setP2End] = useState<Date>(dayjs().toDate());
 
   // Modal

@@ -103,7 +103,7 @@ export function CadastrarVencimento({ onSucesso }: { onSucesso: () => void }) {
             <TextInput
               id="qproduto"
               type="number"
-              step={0.01}
+              step={0.001}
               placeholder="Digite a quantidade"
               onChange={(e) => setQuantidade(Number(e.target.value))}
               required

@@ -2,8 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
 import isBetween from "dayjs/plugin/isBetween";
-import isSameOrAftet from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import {
   Card,
   Table,
@@ -20,13 +20,7 @@ import {
   ModalBody,
   ModalHeader,
 } from "flowbite-react";
-import {
-  HiTrendingUp,
-  HiTrendingDown,
-  HiMinus,
-  HiChartBar,
-  HiX,
-} from "react-icons/hi";
+import { HiChartBar, HiX } from "react-icons/hi";
 import {
   BarChart,
   Bar,
@@ -34,7 +28,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
 import api, { API_URL } from "../../../api";
@@ -42,8 +35,8 @@ import avatar from "../../../static/user.png";
 
 dayjs.locale("pt-br");
 dayjs.extend(isBetween);
-dayjs.extend(isSameOrAftet);
 dayjs.extend(isSameOrBefore);
+dayjs.extend(isSameOrAfter);
 
 interface Conferencia {
   id: number;
@@ -59,213 +52,130 @@ interface User {
   id: number;
   name: string;
   profile_photo: string | null;
-  meta_mensal?: number; // meta total do mês
+  meta_mensal?: number; // meta mensal específica do usuário
+}
+
+interface Meta {
+  user_id: number;
+  user_name: string;
+  quantity: number;
 }
 
 export default function AdminConferenciaAnalytics() {
   const [users, setUsers] = useState<User[]>([]);
   const [conferencias, setConferencias] = useState<Conferencia[]>([]);
+  const [metas, setMetas] = useState<Meta[]>([]);
   const [loading, setLoading] = useState(true);
   const [showChart, setShowChart] = useState(true);
-  const [metaMensalPadrao, setMetaMensalPadrao] = useState(500);
-
-  // Modal usuário
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    dayjs().format("YYYY-MM"),
+  );
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
 
-  // Períodos de comparação
-  const [p1Start, setP1Start] = useState<Date>(
-    dayjs().subtract(30, "day").toDate(),
-  );
-  const [p1End, setP1End] = useState<Date>(
-    dayjs().subtract(16, "day").toDate(),
-  );
-  const [p2Start, setP2Start] = useState<Date>(
-    dayjs().subtract(15, "day").toDate(),
-  );
-  const [p2End, setP2End] = useState<Date>(dayjs().toDate());
-
   useEffect(() => {
-    const load = async () => {
+    const loadData = async () => {
       setLoading(true);
       try {
-        const [uRes, cRes, wRes] = await Promise.all([
-          api.get("/admin/users"),
-          api.get("/conference/"),
-          api.get("/work_conference/items/"),
+        const [uRes, mRes] = await Promise.all([
+          api.get("/admin/users"), // usuários
+          api.get(`/target/conference/${selectedMonth}`), // metas do mês
         ]);
 
-        const workNormalized: Conferencia[] = wRes.data.map((w: any) => ({
-          id: w.id,
-          product_name: w.product_name,
-          product_code: w.product_code,
-          quantity_real: w.quantity_real,
-          quantity_system: w.quantity_system,
-          created_date: w.created_date,
-          created_by: w.created_by,
-        }));
-
         setUsers(uRes.data);
-        setConferencias([...cRes.data, ...workNormalized]);
+        setMetas(mRes.data);
+
+        // Buscar conferências do mês usando between
+        const startOfMonth = dayjs(`${selectedMonth}-01`).format("YYYY-MM-DD");
+        const endOfMonth = dayjs(`${selectedMonth}-01`)
+          .endOf("month")
+          .format("YYYY-MM-DD");
+
+        const cRes = await api.get(
+          `/conference/between?date1=${startOfMonth}&date2=${endOfMonth}`,
+        );
+        setConferencias(cRes.data);
       } catch (err) {
         console.error("Erro ao carregar dados:", err);
       } finally {
         setLoading(false);
       }
     };
-    load();
-  }, []);
 
-  // Função para contar dias úteis entre dois dias
-  const diasUteisAteHoje = (diaFinal: dayjs.Dayjs) => {
-    const inicio = dayjs().startOf("month");
-    let count = 0;
-    let dia = inicio;
-    while (dia.isSameOrBefore(diaFinal, "day")) {
-      const weekday = dia.day(); // 0 = domingo, 6 = sábado
-      if (weekday !== 0 && weekday !== 6) count++;
-      dia = dia.add(1, "day");
+    loadData();
+  }, [selectedMonth]);
+
+  const diasUteisNoMes = () => {
+    const diasDoMes = dayjs(`${selectedMonth}-01`).daysInMonth();
+    const diasUteis: dayjs.Dayjs[] = [];
+    for (let i = 1; i <= diasDoMes; i++) {
+      const dia = dayjs(`${selectedMonth}-01`).date(i);
+      if (dia.day() !== 0 && dia.day() !== 6) diasUteis.push(dia);
     }
-    return count;
+    return diasUteis;
   };
 
-  // Filtrar conferências por período
-  const { confP1, confP2 } = useMemo(() => {
-    const s1 = dayjs(p1Start).startOf("day");
-    const e1 = dayjs(p1End).endOf("day");
-    const s2 = dayjs(p2Start).startOf("day");
-    const e2 = dayjs(p2End).endOf("day");
-
-    const p1 = conferencias.filter((c) =>
-      dayjs(c.created_date).isBetween(s1, e1, null, "[]"),
-    );
-    const p2 = conferencias.filter((c) =>
-      dayjs(c.created_date).isBetween(s2, e2, null, "[]"),
-    );
-
-    return { confP1: p1, confP2: p2 };
-  }, [conferencias, p1Start, p1End, p2Start, p2End]);
-
-  // Agrupar e calcular
   const analytics = useMemo(() => {
-    const mapP1: Record<string, number> = {};
-    const mapP2: Record<string, number> = {};
-
-    confP1.forEach((c) => {
-      mapP1[c.created_by] = (mapP1[c.created_by] || 0) + 1;
-    });
-    confP2.forEach((c) => {
-      mapP2[c.created_by] = (mapP2[c.created_by] || 0) + 1;
+    const mapTotal: Record<string, number> = {};
+    conferencias.forEach((c) => {
+      mapTotal[c.created_by] = (mapTotal[c.created_by] || 0) + 1;
     });
 
-    const allUsers = new Set([
-      ...Object.keys(mapP1),
-      ...Object.keys(mapP2),
-      ...users.map((u) => u.name),
-    ]);
+    const diasUteis = diasUteisNoMes();
+    return users.map((user) => {
+      const total = mapTotal[user.name] || 0;
 
-    return Array.from(allUsers)
-      .map((username) => {
-        const p1 = mapP1[username] || 0;
-        const p2 = mapP2[username] || 0;
-        const percent = p1 === 0 ? (p2 > 0 ? 100 : 0) : ((p2 - p1) / p1) * 100;
+      // Pegar meta específica do usuário para o mês
+      const meta =
+        metas.find((m) => m.user_name === user.name)?.quantity ?? 500;
 
-        const user = users.find((u) => u.name === username);
-        const metaMensal = user?.meta_mensal ?? metaMensalPadrao;
+      const mediaDiaria = diasUteis.length > 0 ? meta / diasUteis.length : meta;
+      const feitoHoje = total; // já contabiliza total do mês até agora
+      const dentroMeta =
+        feitoHoje >=
+        mediaDiaria *
+          diasUteis.filter((d) => d.isBefore(dayjs(), "day")).length;
 
-        // Dias úteis até hoje
-        const diasUteis = diasUteisAteHoje(dayjs());
-        const totalMes = conferencias.filter(
-          (c) =>
-            c.created_by === username &&
-            dayjs(c.created_date).isSame(dayjs(), "month"),
-        ).length;
+      return {
+        username: user.name,
+        name: user.name,
+        avatar: user.profile_photo,
+        total,
+        metaMensal: meta,
+        dentroMeta,
+      };
+    });
+  }, [users, conferencias, metas, selectedMonth]);
 
-        // Meta dinâmica
-        const restante = metaMensal - totalMes;
-        const diasRestantes =
-          diasUteisAteHoje(dayjs().endOf("month")) - diasUteis;
-        const mediaDiariaRestante =
-          diasRestantes > 0 ? restante / diasRestantes : restante;
-
-        const dentroMeta =
-          totalMes >=
-          (metaMensal / diasUteisAteHoje(dayjs().endOf("month"))) * diasUteis;
-
-        return {
-          username,
-          name: user?.name || username,
-          avatar: user?.profile_photo,
-          p1,
-          p2,
-          percent,
-          metaMensal,
-          totalMes,
-          mediaDiariaRestante,
-          dentroMeta,
-        };
-      })
-      .sort((a, b) => b.p2 - a.p2);
-  }, [confP1, confP2, users, conferencias, metaMensalPadrao]);
-
-  // Gráfico
   const chartData = useMemo(
     () =>
       analytics.map((a) => ({
         name: a.name.length > 10 ? a.name.slice(0, 8) + "..." : a.name,
-        "Período 1": a.p1,
-        "Período 2": a.p2,
+        Total: a.total,
       })),
     [analytics],
   );
 
-  const getTrendIcon = (p: number) =>
-    p > 0 ? (
-      <HiTrendingUp className="text-green-600" />
-    ) : p < 0 ? (
-      <HiTrendingDown className="text-red-600" />
-    ) : (
-      <HiMinus className="text-gray-500" />
-    );
-
-  const formatPercent = (v: number) =>
-    v === 0 ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(1)}%`;
-
-  // Função para abrir modal do usuário
   const openUserModal = (user: User) => {
     setSelectedUser(user);
     setShowUserModal(true);
   };
 
-  // Tabela do usuário detalhada
   const userDailyData = useMemo(() => {
     if (!selectedUser) return [];
 
-    const metaMensal = selectedUser.meta_mensal ?? metaMensalPadrao;
-    const diasDoMes = dayjs().daysInMonth();
+    const meta =
+      metas.find((m) => m.user_name === selectedUser.name)?.quantity ?? 500;
+    let restante = meta;
 
-    // Contar dias úteis do mês
-    const diasUteis = Array.from({ length: diasDoMes }, (_, i) => {
-      const dia = dayjs().date(i + 1);
-      return dia.day() !== 0 && dia.day() !== 6 ? dia : null;
-    }).filter(Boolean) as dayjs.Dayjs[];
-
-    const totalFeito = conferencias.filter(
-      (c) =>
-        c.created_by === selectedUser.name &&
-        dayjs(c.created_date).isSame(dayjs(), "month"),
-    ).length;
-
-    let restante = metaMensal - totalFeito;
-
-    return diasUteis.map((dia) => {
+    return diasUteisNoMes().map((dia) => {
       const feitoHoje = conferencias.filter(
         (c) =>
           c.created_by === selectedUser.name &&
           dayjs(c.created_date).isSame(dia, "day"),
       ).length;
 
-      const diasRestantes = diasUteis.filter((d) =>
+      const diasRestantes = diasUteisNoMes().filter((d) =>
         d.isSameOrAfter(dia),
       ).length;
       const mediaDiariaRestante =
@@ -276,11 +186,11 @@ export default function AdminConferenciaAnalytics() {
       return {
         dia: dia.format("DD/MM"),
         feito: feitoHoje,
-        mediaDiariaRestante: mediaDiariaRestante,
+        mediaDiariaRestante,
         restante,
       };
     });
-  }, [selectedUser, conferencias, metaMensalPadrao]);
+  }, [selectedUser, conferencias, metas, selectedMonth]);
 
   return (
     <div className="m-5 flex flex-col items-center gap-6">
@@ -300,45 +210,16 @@ export default function AdminConferenciaAnalytics() {
           </Button>
         </div>
 
-        {/* Períodos */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {[
-            ["Período 1 - Início", p1Start, setP1Start],
-            ["Período 1 - Fim", p1End, setP1End],
-            ["Período 2 - Início", p2Start, setP2Start],
-            ["Período 2 - Fim", p2End, setP2End],
-          ].map(([label, val, set]) => (
-            <div key={String(label)}>
-              <label className="block text-sm text-gray-600 dark:text-gray-300">
-                {label}
-              </label>
-              <input
-                type="date"
-                value={dayjs(val as Date).format("YYYY-MM-DD")}
-                onChange={(e) => {
-                  const d = new Date(e.target.value + "T00:00:00");
-                  if (!isNaN(d.getTime())) (set as any)(d);
-                }}
-                className="w-full rounded border-gray-300 shadow-sm focus:ring focus:ring-indigo-500"
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="mb-6 flex items-center gap-4">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Meta mensal padrão:
+            Mês:
           </label>
           <input
-            type="number"
-            min={0}
-            value={metaMensalPadrao}
-            onChange={(e) => setMetaMensalPadrao(Number(e.target.value))}
-            className="w-32 rounded border-gray-300 shadow-sm focus:ring focus:ring-indigo-500 dark:bg-gray-600 dark:text-white"
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="rounded border-gray-300 shadow-sm focus:ring focus:ring-indigo-500 dark:bg-gray-600 dark:text-white"
           />
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            (usada quando o usuário não tem meta definida)
-          </span>
         </div>
 
         {loading ? (
@@ -355,9 +236,7 @@ export default function AdminConferenciaAnalytics() {
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
-                    <Legend />
-                    <Bar dataKey="Período 1" fill="#8b5cf6" />
-                    <Bar dataKey="Período 2" fill="#10b981" />
+                    <Bar dataKey="Total" fill="#10b981" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -366,9 +245,7 @@ export default function AdminConferenciaAnalytics() {
             <Table hoverable striped>
               <TableHead>
                 <TableHeadCell>Usuário</TableHeadCell>
-                <TableHeadCell className="text-center">P1</TableHeadCell>
-                <TableHeadCell className="text-center">P2</TableHeadCell>
-                <TableHeadCell className="text-center">Variação</TableHeadCell>
+                <TableHeadCell className="text-center">Total</TableHeadCell>
                 <TableHeadCell className="text-center">
                   Meta Mensal
                 </TableHeadCell>
@@ -394,16 +271,11 @@ export default function AdminConferenciaAnalytics() {
                       />
                       {a.name}
                     </TableCell>
-                    <TableCell className="text-center">{a.p1}</TableCell>
                     <TableCell className="text-center font-semibold">
-                      {a.p2}
-                    </TableCell>
-                    <TableCell className="flex items-center justify-center gap-1 text-center">
-                      {getTrendIcon(a.percent)}
-                      {formatPercent(a.percent)}
+                      {a.total}
                     </TableCell>
                     <TableCell className="text-center">
-                      {a.totalMes}/{a.metaMensal}
+                      {a.metaMensal}
                     </TableCell>
                     <TableCell className="text-center">
                       {a.dentroMeta ? (
@@ -420,7 +292,6 @@ export default function AdminConferenciaAnalytics() {
         )}
       </Card>
 
-      {/* Modal do usuário */}
       <Modal
         show={showUserModal}
         onClose={() => setShowUserModal(false)}

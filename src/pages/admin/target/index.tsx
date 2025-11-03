@@ -9,8 +9,6 @@ import {
   Badge,
   Progress,
   Modal,
-  ModalBody,
-  ModalHeader,
 } from "flowbite-react";
 import api, { API_URL } from "../../../api";
 import { useAuthStore } from "../../authStore";
@@ -89,7 +87,7 @@ export default function CreateTargetConference() {
   }, []);
 
   // SUBMIT FORM
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!user?.admin) {
       setMessage("Apenas administradores podem cadastrar metas.");
@@ -129,7 +127,7 @@ export default function CreateTargetConference() {
       setApplyToAll(false);
       setOpenModal(false);
       fetchTargets();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       setMessage(err.response?.data?.detail || "Erro ao cadastrar meta.");
     } finally {

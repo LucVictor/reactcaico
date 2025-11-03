@@ -109,7 +109,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
         <TextInput
           id="qproduto_fisico"
           type="number"
-          step={0.01}
+          step={0.001}
           placeholder="Digite a quantidade física"
           onChange={(e) => setQuantidade_fisico(Number(e.target.value))}
           required
@@ -121,7 +121,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
         <TextInput
           id="qproduto_sistema"
           type="number"
-          step={0.01}
+          step={0.001}
           placeholder="Digite a quantidade no sistema"
           onChange={(e) => setQuantidade_sistema(Number(e.target.value))}
           required
