@@ -11,6 +11,7 @@ import {
   Spinner,
 } from "flowbite-react";
 import api from "../../api";
+import { useAuthStore } from "../authStore";
 
 export interface ProdutoConferidoProps {
   id: number;
@@ -46,6 +47,7 @@ export function ConferenciaCalendario() {
   });
   const [meta, setMeta] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const user = useAuthStore((state) => state.user);
 
   // Opções de últimos 12 meses
   const mesesOptions = Array.from({ length: 12 }).map((_, i) => {
@@ -78,7 +80,7 @@ export function ConferenciaCalendario() {
       const ultimoDia = new Date(ano, mes, 0).toISOString().slice(0, 10);
 
       const response = await api.get("/conference/between", {
-        params: { date1: primeiroDia, date2: ultimoDia },
+        params: { date1: primeiroDia, date2: ultimoDia, user: user?.id },
       });
 
       setProdutosConferidos(response.data);

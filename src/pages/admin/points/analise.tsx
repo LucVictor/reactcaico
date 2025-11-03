@@ -351,8 +351,8 @@ export default function AdminPointsAnalytics() {
               type="date"
               value={dayjs(p1Start).format("YYYY-MM-DD")}
               onChange={(e) => {
-                const d = new Date(e.target.value);
-                if (!isNaN(d.getTime())) setP1Start(d);
+                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
+                setP1Start(d);
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
@@ -366,8 +366,8 @@ export default function AdminPointsAnalytics() {
               type="date"
               value={dayjs(p1End).format("YYYY-MM-DD")}
               onChange={(e) => {
-                const d = new Date(e.target.value);
-                if (!isNaN(d.getTime())) setP1End(d);
+                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
+                setP1Start(d);
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
@@ -382,8 +382,8 @@ export default function AdminPointsAnalytics() {
               type="date"
               value={dayjs(p2Start).format("YYYY-MM-DD")}
               onChange={(e) => {
-                const d = new Date(e.target.value);
-                if (!isNaN(d.getTime())) setP2Start(d);
+                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
+                setP1Start(d);
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
@@ -397,8 +397,8 @@ export default function AdminPointsAnalytics() {
               type="date"
               value={dayjs(p2End).format("YYYY-MM-DD")}
               onChange={(e) => {
-                const d = new Date(e.target.value);
-                if (!isNaN(d.getTime())) setP2End(d);
+                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
+                setP1Start(d);
               }}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />

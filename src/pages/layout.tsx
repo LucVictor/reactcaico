@@ -144,8 +144,18 @@ export default function Layout({ pagina }: paginaProps) {
                   <span className="block text-sm">Adm: Rank</span>
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/rank/analise")}>
-                  <span className="block text-sm">Adm: Analise</span>
-                </DropdownItem>{" "}
+                  <span className="block text-sm">Adm: Rank Analise</span>
+                </DropdownItem>
+                <DropdownItem
+                  onClick={() => navigate("/admin/conferencia/analise")}
+                >
+                  <span className="block text-sm">
+                    Adm: Conferência Analise
+                  </span>
+                </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/metas")}>
+                  <span className="block text-sm">Adm: Conferência Meta</span>
+                </DropdownItem>
               </>
             ) : (
               ""

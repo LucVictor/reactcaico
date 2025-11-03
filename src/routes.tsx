@@ -16,6 +16,8 @@ import PointsPagina from "./pages/admin/points";
 import type { JSX } from "react";
 import AdminPoints from "./pages/admin/rank";
 import AdminPointsAnalytics from "./pages/admin/points/analise";
+import AdminConferenciaAnalytics from "./pages/admin/conference";
+import CreateTargetConference from "./pages/admin/target";
 
 export interface AppRoute {
   path: string;
@@ -106,6 +108,18 @@ export const routes: AppRoute[] = [
   {
     path: "/admin/rank/analise",
     element: <Layout pagina={<AdminPointsAnalytics />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/conferencia/analise",
+    element: <Layout pagina={<AdminConferenciaAnalytics />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/metas",
+    element: <Layout pagina={<CreateTargetConference />} />,
     protected: true,
     adminOnly: true,
   },
