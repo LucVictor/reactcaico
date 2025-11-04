@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Table,
   TableHead,
@@ -15,29 +15,24 @@ import {
   TextInput,
   Pagination,
   Spinner,
+  Alert,
 } from "flowbite-react";
 import api from "../../api";
 import { useLocalDeEstoque } from "../localEstoque";
 import { useAuthStore } from "../authStore";
 
-interface Receipt {
+type Receipt = {
   id: number;
   user_id: number;
   user_name: string;
   quantity: number;
   local: number;
   created_date: string;
-}
+};
 
-interface CreateReceipt {
-  user_id: number;
-  user_name: string;
-  quantity: number;
-  local: number;
-  created_date: string;
-}
+type CreateReceipt = Omit<Receipt, "id">;
 
-interface ReceiptProduct {
+type ReceiptProduct = {
   id?: number;
   product_code: number | string;
   receipt_id?: number;
@@ -48,13 +43,24 @@ interface ReceiptProduct {
   diference?: number | null;
   created_date?: string;
   local?: number;
-}
+};
 
 export default function ReceiptPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
   const [products, setProducts] = useState<ReceiptProduct[]>([]);
+  const [newItems, setNewItems] = useState<ReceiptProduct[]>([
+    {
+      product_code: "",
+      product_name: "",
+      quantity_system: "",
+      quantity_real: "",
+    },
+  ]);
+
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [openModal, setOpenModal] = useState(false);
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -64,113 +70,95 @@ export default function ReceiptPage() {
   const user = useAuthStore((state) => state.user);
 
   const [newReceipt, setNewReceipt] = useState<CreateReceipt>({
-    user_id: user?.id || 1,
-    user_name: user?.name || "",
+    user_id: user?.id || 0,
+    user_name: user?.name || "Usuário",
     quantity: 0,
-    local: idLocal || 1,
+    local: idLocal || 0,
     created_date: new Date().toISOString().split("T")[0],
   });
 
-  // Paginação
   const [pagina, setPagina] = useState(1);
   const itensPorPagina = 5;
-  const indiceInicial = (pagina - 1) * itensPorPagina;
-  const indiceFinal = indiceInicial + itensPorPagina;
-  const receiptsPagina = receipts.slice(indiceInicial, indiceFinal);
+  const receiptsPagina = receipts.slice(
+    (pagina - 1) * itensPorPagina,
+    pagina * itensPorPagina,
+  );
   const totalPaginas = Math.max(1, Math.ceil(receipts.length / itensPorPagina));
 
-  // Buscar receipts
-  async function fetchReceipts() {
+  const handleError = useCallback((msg: string, err?: unknown) => {
+    console.error(msg, err);
+    setErrorMsg(msg);
+    setTimeout(() => setErrorMsg(null), 4000);
+  }, []);
+
+  const handleSuccess = useCallback((msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(null), 3000);
+  }, []);
+
+  const fetchReceipts = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await api.get("/receipt/");
+      const res = await api.get<Receipt[]>("/receipt/");
       setReceipts(res.data);
     } catch (err) {
-      console.error("Erro ao carregar receipts:", err);
+      handleError("Erro ao carregar receipts.", err);
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [handleError]);
 
-  // Buscar produtos do receipt
-  async function fetchProducts(receiptId: number) {
-    try {
-      const res = await api.get(`/receipt/products/${receiptId}`);
-      const data = res.data.filter(
-        (p: ReceiptProduct) => p.receipt_id === receiptId,
-      );
-      setProducts(data);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  // Abrir modal de receipt
-  const handleOpenModal = async (receipt: Receipt) => {
-    setSelectedReceipt(receipt);
-    await fetchProducts(receipt.id);
-    setOpenModal(true);
-  };
-
-  const handleCloseModal = () => {
-    setOpenModal(false);
-    setSelectedReceipt(null);
-    setProducts([]);
-  };
-
-  // Criar receipt
-  const handleCreateReceipt = async () => {
-    try {
-      if (newReceipt.quantity <= 0) {
-        alert("Informe uma quantidade válida!");
-        return;
+  const fetchProducts = useCallback(
+    async (receiptId: number) => {
+      try {
+        const res = await api.get<ReceiptProduct[]>(
+          `/receipt/products/${receiptId}`,
+        );
+        setProducts(res.data);
+      } catch (err) {
+        handleError("Erro ao carregar produtos do receipt.", err);
       }
+    },
+    [handleError],
+  );
 
-      const payload = { ...newReceipt, local: idLocal };
-      await api.post("/receipt/", payload);
-      alert("Receipt criado com sucesso!");
+  const handleCreateReceipt = async () => {
+    if (newReceipt.quantity <= 0) {
+      handleError("Informe uma quantidade válida!");
+      return;
+    }
+
+    try {
+      await api.post("/receipt/", { ...newReceipt, local: idLocal });
+      handleSuccess("Receipt criado com sucesso!");
       setOpenCreateModal(false);
       fetchReceipts();
     } catch (err) {
-      console.error(err);
-      alert("Erro ao criar receipt");
+      handleError("Erro ao criar receipt.", err);
     }
   };
 
-  // Deletar receipt
   const handleDeleteReceipt = async (id: number) => {
     if (!confirm("Tem certeza que deseja excluir este receipt?")) return;
     try {
       await api.delete(`/receipt/${id}`);
-      alert("Receipt excluído com sucesso!");
+      handleSuccess("Receipt excluído com sucesso!");
       fetchReceipts();
     } catch (err) {
-      console.error(err);
-      alert("Erro ao excluir receipt.");
+      handleError("Erro ao excluir receipt.", err);
     }
   };
 
-  // Deletar produto
   const handleDeleteProduct = async (id: number) => {
     if (!confirm("Excluir produto deste receipt?")) return;
     try {
       await api.delete(`/receipt/product/${id}`);
-      alert("Produto excluído!");
+      handleSuccess("Produto excluído!");
       if (selectedReceipt) await fetchProducts(selectedReceipt.id);
     } catch (err) {
-      console.error(err);
+      handleError("Erro ao excluir produto.", err);
     }
   };
-
-  // Adicionar itens
-  const [newItems, setNewItems] = useState<ReceiptProduct[]>([
-    {
-      product_code: "",
-      product_name: "",
-      quantity_system: "",
-      quantity_real: "",
-    },
-  ]);
 
   const handleAddLine = () => {
     setNewItems((prev) => [
@@ -184,37 +172,18 @@ export default function ReceiptPage() {
     ]);
   };
 
-  const handleRemoveLine = (index: number) => {
-    setNewItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleChangeLine = (index: number, field: string, value: string) => {
+  const handleChangeLine = (
+    index: number,
+    field: keyof ReceiptProduct,
+    value: string,
+  ) => {
     setNewItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
   };
 
-  useEffect(() => {
-    const fetchNames = async () => {
-      for (const [index, item] of newItems.entries()) {
-        if (item.product_code && !item.product_name) {
-          try {
-            const res = await api.get(`/product/${item.product_code}`);
-            handleChangeLine(index, "product_name", res.data.name);
-          } catch (error) {
-            console.error(error);
-          }
-        }
-      }
-    };
-    fetchNames();
-  }, [newItems.map((i) => i.product_code).join(",")]);
-
-  const handleSaveItems = async () => {
-    if (!selectedReceipt) {
-      alert("Selecione um receipt antes!");
-      return;
-    }
+  const handleAddItems = async () => {
+    if (!selectedReceipt) return;
 
     try {
       for (const item of newItems) {
@@ -234,29 +203,41 @@ export default function ReceiptPage() {
         });
       }
 
-      alert("Itens adicionados com sucesso!");
+      handleSuccess("Itens adicionados com sucesso!");
       setOpenAddItemModal(false);
       await fetchProducts(selectedReceipt.id);
     } catch (err) {
-      console.error(err);
-      alert("Erro ao adicionar itens");
+      handleError("Erro ao adicionar itens.", err);
     }
+  };
+
+  const handleOpenModal = async (receipt: Receipt) => {
+    setSelectedReceipt(receipt);
+    await fetchProducts(receipt.id);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedReceipt(null);
+    setProducts([]);
   };
 
   useEffect(() => {
     fetchReceipts();
-  }, []);
-
-  const receiptTemProdutos = products.length > 0;
+  }, [fetchReceipts]);
 
   return (
     <div className="m-5 rounded-2xl bg-gray-700 p-6 text-gray-100">
+      {errorMsg && <Alert color="failure">{errorMsg}</Alert>}
+      {successMsg && <Alert color="success">{successMsg}</Alert>}
+
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Spinner size="xl" />
         </div>
       ) : (
-        <div className="m-5 mx-auto">
+        <>
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-3xl font-bold">📦 Receipts</h1>
             <Button onClick={() => setOpenCreateModal(true)}>
@@ -313,106 +294,169 @@ export default function ReceiptPage() {
               showIcons
             />
           </div>
-
-          {/* Modal de criar receipt */}
-          <Modal
-            show={openCreateModal}
-            onClose={() => setOpenCreateModal(false)}
-          >
-            <ModalHeader>Criar novo receipt</ModalHeader>
-            <ModalBody>
-              <div className="flex flex-col gap-4">
-                <Label>Quantidade total</Label>
-                <TextInput
-                  type="number"
-                  value={newReceipt.quantity}
-                  onChange={(e) =>
-                    setNewReceipt((prev) => ({
-                      ...prev,
-                      quantity: Number(e.target.value),
-                    }))
-                  }
-                />
-                <Label>Data</Label>
-                <TextInput
-                  type="date"
-                  value={newReceipt.created_date}
-                  onChange={(e) =>
-                    setNewReceipt((prev) => ({
-                      ...prev,
-                      created_date: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button onClick={handleCreateReceipt}>Criar</Button>
-              <Button color="gray" onClick={() => setOpenCreateModal(false)}>
-                Cancelar
-              </Button>
-            </ModalFooter>
-          </Modal>
-
-          {/* Modal de itens */}
-          <Modal show={openModal} onClose={handleCloseModal} size="4xl">
-            <ModalHeader>
-              Itens do Receipt #{selectedReceipt?.id} —{" "}
-              {selectedReceipt?.user_name}
-            </ModalHeader>
-            <ModalBody>
-              {products.length > 0 ? (
-                <Table hoverable className="border border-gray-600 text-center">
-                  <TableHead>
-                    <TableRow className="bg-gray-800">
-                      <TableHeadCell>Código</TableHeadCell>
-                      <TableHeadCell>Produto</TableHeadCell>
-                      <TableHeadCell>Qtd Sistema</TableHeadCell>
-                      <TableHeadCell>Qtd Real</TableHeadCell>
-                      <TableHeadCell>Diferença</TableHeadCell>
-                      <TableHeadCell>Ações</TableHeadCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {products.map((p) => (
-                      <TableRow key={p.id} className="bg-gray-800/50">
-                        <TableCell>{p.product_code}</TableCell>
-                        <TableCell>{p.product_name}</TableCell>
-                        <TableCell>{p.quantity_system ?? "-"}</TableCell>
-                        <TableCell>{p.quantity_real ?? "-"}</TableCell>
-                        <TableCell>{p.diference ?? "-"}</TableCell>
-                        <TableCell>
-                          <Button
-                            size="xs"
-                            color="failure"
-                            onClick={() => handleDeleteProduct(p.id!)}
-                          >
-                            Remover
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <p className="text-center text-gray-400">
-                  Nenhum produto cadastrado.
-                </p>
-              )}
-            </ModalBody>
-            <ModalFooter>
-              {!receiptTemProdutos && (
-                <Button onClick={() => setOpenAddItemModal(true)}>
-                  Adicionar Itens
-                </Button>
-              )}
-              <Button color="gray" onClick={handleCloseModal}>
-                Fechar
-              </Button>
-            </ModalFooter>
-          </Modal>
-        </div>
+        </>
       )}
+
+      {/* Modal Criar Receipt */}
+      <Modal show={openCreateModal} onClose={() => setOpenCreateModal(false)}>
+        <ModalHeader>Criar novo receipt</ModalHeader>
+        <ModalBody>
+          <div className="flex flex-col gap-4">
+            <Label>Quantidade total</Label>
+            <TextInput
+              type="number"
+              value={newReceipt.quantity}
+              onChange={(e) =>
+                setNewReceipt((prev) => ({
+                  ...prev,
+                  quantity: Number(e.target.value),
+                }))
+              }
+            />
+            <Label>Data</Label>
+            <TextInput
+              type="date"
+              value={newReceipt.created_date}
+              onChange={(e) =>
+                setNewReceipt((prev) => ({
+                  ...prev,
+                  created_date: e.target.value,
+                }))
+              }
+            />
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button onClick={handleCreateReceipt}>Criar</Button>
+          <Button color="gray" onClick={() => setOpenCreateModal(false)}>
+            Cancelar
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Modal Itens */}
+      <Modal show={openModal} onClose={handleCloseModal} size="4xl">
+        <ModalHeader>
+          Itens do Receipt #{selectedReceipt?.id} — {selectedReceipt?.user_name}
+        </ModalHeader>
+        <ModalBody>
+          {products.length > 0 ? (
+            <Table hoverable className="border border-gray-600 text-center">
+              <TableHead>
+                <TableRow className="bg-gray-800">
+                  <TableHeadCell>Código</TableHeadCell>
+                  <TableHeadCell>Produto</TableHeadCell>
+                  <TableHeadCell>Qtd Sistema</TableHeadCell>
+                  <TableHeadCell>Qtd Real</TableHeadCell>
+                  <TableHeadCell>Diferença</TableHeadCell>
+                  <TableHeadCell>Ações</TableHeadCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {products.map((p) => (
+                  <TableRow key={p.id} className="bg-gray-800/50">
+                    <TableCell>{p.product_code}</TableCell>
+                    <TableCell>{p.product_name}</TableCell>
+                    <TableCell>{p.quantity_system ?? "-"}</TableCell>
+                    <TableCell>{p.quantity_real ?? "-"}</TableCell>
+                    <TableCell>{p.diference ?? "-"}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="xs"
+                        color="failure"
+                        onClick={() => handleDeleteProduct(p.id!)}
+                      >
+                        Remover
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-center text-gray-400">
+              Nenhum produto cadastrado.
+            </p>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button onClick={() => setOpenAddItemModal(true)}>
+            Adicionar Itens
+          </Button>
+          <Button color="gray" onClick={handleCloseModal}>
+            Fechar
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Modal Adicionar Itens */}
+      <Modal
+        show={openAddItemModal}
+        onClose={() => setOpenAddItemModal(false)}
+        size="4xl"
+      >
+        <ModalHeader>Adicionar Itens ao Receipt</ModalHeader>
+        <ModalBody>
+          <Table hoverable className="border border-gray-600 text-center">
+            <TableHead>
+              <TableRow className="bg-gray-800">
+                <TableHeadCell>Código</TableHeadCell>
+                <TableHeadCell>Produto</TableHeadCell>
+                <TableHeadCell>Qtd Sistema</TableHeadCell>
+                <TableHeadCell>Qtd Real</TableHeadCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {newItems.map((item, index) => (
+                <TableRow key={index} className="bg-gray-800/50">
+                  <TableCell>
+                    <TextInput
+                      value={item.product_code}
+                      onChange={(e) =>
+                        handleChangeLine(index, "product_code", e.target.value)
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextInput
+                      value={item.product_name}
+                      readOnly
+                      placeholder="Nome do produto"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextInput
+                      type="number"
+                      onChange={(e) =>
+                        handleChangeLine(
+                          index,
+                          "quantity_system",
+                          e.target.value,
+                        )
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextInput
+                      type="number"
+                      onChange={(e) =>
+                        handleChangeLine(index, "quantity_real", e.target.value)
+                      }
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          <div className="mt-4 flex justify-between">
+            <Button color="gray" onClick={handleAddLine}>
+              + Nova Linha
+            </Button>
+            <Button onClick={handleAddItems}>Salvar Itens</Button>
+          </div>
+        </ModalBody>
+      </Modal>
     </div>
   );
 }
