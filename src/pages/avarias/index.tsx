@@ -179,49 +179,61 @@ function TableComponent() {
           </div>
 
           {/* Tabela */}
+          {/* Tabela */}
           <div className="w-full max-w-6xl overflow-auto rounded border-gray-700">
-            <Table className="min-w-full text-center">
-              <TableHead>
-                <TableRow>
-                  <TableHeadCell>Data</TableHeadCell>
-                  <TableHeadCell>Código</TableHeadCell>
-                  <TableHeadCell>Produto</TableHeadCell>
-                  <TableHeadCell>Quantidade</TableHeadCell>
-                  <TableHeadCell>Custo</TableHeadCell>
-                  <TableHeadCell>Tipo</TableHeadCell>
-                  <TableHeadCell>Origem</TableHeadCell>
-                  <TableHeadCell>
-                    <span className="sr-only">Ações</span>
-                  </TableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody className="divide-y">
-                {produtosPaginados.map((produto) => (
-                  <TableRow
-                    key={produto.id}
-                    className="bg-white dark:border-gray-700 dark:bg-gray-800"
-                  >
-                    <TableCell>{formatarData(produto.damaged_date)}</TableCell>
-                    <TableCell>{produto.product_code}</TableCell>
-                    <TableCell>{produto.product_name}</TableCell>
-                    <TableCell>{produto.quantity}</TableCell>
-                    <TableCell>{formatarMoeda(produto.cost_total)}</TableCell>
-                    <TableCell>
-                      {tipo.find((e) => e.id === produto.type)?.name || "-"}
-                    </TableCell>
-                    <TableCell>
-                      {origem.find((e) => e.id === produto.origin)?.name || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <BotaoExcluir
-                        produto={produto}
-                        onAtualizar={buscarAvarias}
-                      />
-                    </TableCell>
+            {produtos.length > 0 ? (
+              <Table className="min-w-full text-center">
+                <TableHead>
+                  <TableRow>
+                    <TableHeadCell>Data</TableHeadCell>
+                    <TableHeadCell>Código</TableHeadCell>
+                    <TableHeadCell>Produto</TableHeadCell>
+                    <TableHeadCell>Quantidade</TableHeadCell>
+                    <TableHeadCell>Custo</TableHeadCell>
+                    <TableHeadCell>Tipo</TableHeadCell>
+                    <TableHeadCell>Origem</TableHeadCell>
+                    <TableHeadCell>
+                      <span className="sr-only">Ações</span>
+                    </TableHeadCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody className="divide-y">
+                  {produtosPaginados.map((produto) => (
+                    <TableRow
+                      key={produto.id}
+                      className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                    >
+                      <TableCell>
+                        {formatarData(produto.damaged_date)}
+                      </TableCell>
+                      <TableCell>{produto.product_code}</TableCell>
+                      <TableCell>{produto.product_name}</TableCell>
+                      <TableCell>{produto.quantity}</TableCell>
+                      <TableCell>{formatarMoeda(produto.cost_total)}</TableCell>
+                      <TableCell>
+                        {tipo.find((e) => e.id === produto.type)?.name || "-"}
+                      </TableCell>
+                      <TableCell>
+                        {origem.find((e) => e.id === produto.origin)?.name ||
+                          "-"}
+                      </TableCell>
+                      <TableCell>
+                        <BotaoExcluir
+                          produto={produto}
+                          onAtualizar={buscarAvarias}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="flex h-48 w-full items-center justify-center rounded-md bg-gray-100 dark:bg-gray-800">
+                <p className="text-lg font-medium text-gray-600 dark:text-gray-300">
+                  Nenhuma avaria cadastrada no mês.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Paginação */}
