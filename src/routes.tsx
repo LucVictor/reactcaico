@@ -18,6 +18,7 @@ import AdminPoints from "./pages/admin/rank";
 import AdminPointsAnalytics from "./pages/admin/points/analise";
 import AdminConferenciaAnalytics from "./pages/admin/conference";
 import CreateTargetConference from "./pages/admin/target";
+import ReceiptPage from "./pages/recebimento";
 
 export interface AppRoute {
   path: string;
@@ -73,6 +74,11 @@ export const routes: AppRoute[] = [
   {
     path: "/tarefas",
     element: <Layout pagina={<Tarefas />} />,
+    protected: true,
+  },
+  {
+    path: "/recebimento",
+    element: <Layout pagina={<ReceiptPage />} />,
     protected: true,
   },
   {
