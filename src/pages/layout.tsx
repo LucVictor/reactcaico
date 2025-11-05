@@ -87,16 +87,19 @@ export default function Layout({ pagina }: paginaProps) {
             >
               Conferências
             </Button>
+
+            <Button
+              onClick={() => navigate("/recebimento")}
+              color="alternative"
+            >
+              Recebimentos
+            </Button>
             <Button onClick={() => navigate("/metas")} color="alternative">
               Metas
             </Button>
 
             <Button onClick={() => navigate("/pontos")} color="alternative">
               Pontos
-            </Button>
-
-            <Button onClick={() => navigate("/tarefas")} color="alternative">
-              Tarefas
             </Button>
           </ButtonGroup>
 
