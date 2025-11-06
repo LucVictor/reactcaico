@@ -325,7 +325,7 @@ export default function ReceiptPage() {
      Render
   ============================================================ */
   return (
-    <div className="m-4 min-h-screen rounded-2xl bg-gray-700 p-3 text-gray-100">
+    <div className="m-4 min-h-screen rounded-2xl bg-gray-700 p-3 text-gray-100 opacity-95">
       {/* Mensagens */}
       {errorMsg && (
         <Alert color="failure" className="mb-4">
@@ -339,11 +339,15 @@ export default function ReceiptPage() {
       )}
 
       {/* Cabeçalho */}
-      <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <h1 className="text-3xl font-bold text-white">Recebimentos</h1>
-        <Button onClick={() => setOpenCreateModal(true)} size="sm">
-          Cadastrar
-        </Button>
+      <div className="mb-8 flex flex-col justify-center align-middle">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-white">Recebimentos</h1>
+        </div>
+        <div className="flex justify-end">
+          <Button onClick={() => setOpenCreateModal(true)} size="sm">
+            Cadastrar
+          </Button>
+        </div>
       </div>
 
       {/* Tabela */}
@@ -448,7 +452,7 @@ export default function ReceiptPage() {
 
       {/* Criar Receipt */}
       <Modal show={openCreateModal} onClose={() => setOpenCreateModal(false)}>
-        <ModalHeader>Criar Novo Receipt</ModalHeader>
+        <ModalHeader>Cadastrar recebimento</ModalHeader>
         <ModalBody>
           <Label>Data</Label>
           <TextInput

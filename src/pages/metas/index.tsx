@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "flowbite-react";
 import { ConferenciaCalendario } from "./conferenciaCalendario";
-import { IndicadorAvaria } from "./avariasMetas";
+//* import { IndicadorAvaria } from "./avariasMetas";
 declare global {
   interface Window {
     __carregarConferencia?: () => void;
@@ -45,9 +45,7 @@ export default function IndexMetas() {
         <div>
           <ConferenciaCalendario />
         </div>
-        <div>
-          <IndicadorAvaria />
-        </div>
+        <div>{/* <IndicadorAvaria /> */}</div>
       </div>
     </main>
   );

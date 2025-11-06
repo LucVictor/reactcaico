@@ -105,9 +105,12 @@ export default function TableComponent() {
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
             Informações Gerais
           </h2>
-          <p className="mt-2 font-normal text-gray-700 dark:text-gray-400">
+          <p className="mt-2 flex flex-col gap-2 font-normal text-gray-700 dark:text-gray-400">
             <Badge className="m-auto w-fit">
               Total de produtos conferidos hoje: {produtosConferidosHoje}
+            </Badge>
+            <Badge className="m-auto w-fit">
+              Total de produtos conferidos no mês: {produtosConferidos.length}
             </Badge>
           </p>
         </Card>
