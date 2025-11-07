@@ -43,18 +43,8 @@ type Receipt = {
 
 type CreateReceipt = Omit<
   Receipt,
-  "id" | "completed" | "approved" | "photo" | "time_stamp"
+  "id" | "completed" | "approved" | "time_stamp"
 >;
-
-type ReceiptProduct = {
-  id?: number;
-  product_code: number | string;
-  receipt_id?: number;
-  product_name: string;
-  quantity_system?: number | null | string;
-  quantity_real?: number | null | string;
-  diference?: number | null;
-};
 
 /* ============================================================
    Componente principal
@@ -62,26 +52,15 @@ type ReceiptProduct = {
 export default function ReceiptPage() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
-  const [products, setProducts] = useState<ReceiptProduct[]>([]);
-  const [newItems, setNewItems] = useState<ReceiptProduct[]>([
-    {
-      product_code: "",
-      product_name: "",
-      quantity_system: "",
-      quantity_real: "",
-    },
-  ]);
 
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [openCreateModal, setOpenCreateModal] = useState(false);
-  const [openAddItemModal, setOpenAddItemModal] = useState(false);
   const [openModal, setOpenModal] = useState(false);
 
   const { idLocal } = useLocalDeEstoque();
@@ -92,14 +71,16 @@ export default function ReceiptPage() {
     user_name: user?.name || "Usuário",
     local: idLocal || 0,
     created_date: dayjs().format("YYYY-MM-DD"),
+    quantity: 0,
+    photo: null,
   });
 
-  // Paginação – 10 por página
+  // Paginação
   const PAGE_SIZE = 10;
   const [page, setPage] = useState(1);
 
   /* ============================================================
-     Handlers de mensagens
+     Mensagens
   ============================================================ */
   const handleError = useCallback((msg: string, err?: unknown) => {
     console.error(msg, err);
@@ -113,7 +94,7 @@ export default function ReceiptPage() {
   }, []);
 
   /* ============================================================
-     Fetchs
+     Fetch
   ============================================================ */
   const fetchReceipts = useCallback(async () => {
     setIsLoading(true);
@@ -127,76 +108,57 @@ export default function ReceiptPage() {
     }
   }, [handleError]);
 
-  const fetchProducts = useCallback(
-    async (receiptId: number) => {
-      try {
-        const res = await api.get<ReceiptProduct[]>(
-          `/receipt/products/${receiptId}`,
-        );
-        setProducts(res.data);
-      } catch (err) {
-        handleError("Erro ao carregar produtos.", err);
-      }
-    },
-    [handleError],
-  );
-
   /* ============================================================
-     Criação / Exclusão
+     Criar Receipt
   ============================================================ */
   const handleCreateReceipt = async () => {
+    if (!photoFile) {
+      handleError("É necessário enviar uma foto.");
+      return;
+    }
+
     try {
-      await api.post("/receipt/", { ...newReceipt, local: idLocal });
-      handleSuccess("Receipt criado com sucesso!");
+      const formData = new FormData();
+      formData.append("user_id", String(newReceipt.user_id));
+      formData.append("user_name", newReceipt.user_name);
+      formData.append("local", String(newReceipt.local));
+      formData.append("created_date", newReceipt.created_date);
+      formData.append("quantity", String(newReceipt.quantity));
+      formData.append("photo", photoFile);
+
+      await api.post("/receipt/", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      handleSuccess("Recebimento criado com sucesso!");
       setOpenCreateModal(false);
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setNewReceipt({
+        user_id: user?.id || 0,
+        user_name: user?.name || "Usuário",
+        local: idLocal || 0,
+        created_date: dayjs().format("YYYY-MM-DD"),
+        quantity: 0,
+        photo: null,
+      });
       fetchReceipts();
     } catch (err) {
       handleError("Erro ao criar receipt.", err);
     }
   };
 
+  /* ============================================================
+     Deletar Receipt
+  ============================================================ */
   const handleDeleteReceipt = async (id: number) => {
-    if (!confirm("Tem certeza que deseja excluir este receipt?")) return;
+    if (!confirm("Tem certeza que deseja excluir este recebimento?")) return;
     try {
       await api.delete(`/receipt/${id}`);
-      handleSuccess("Receipt excluído com sucesso!");
+      handleSuccess("Recebimento excluído!");
       fetchReceipts();
     } catch (err) {
       handleError("Erro ao excluir receipt.", err);
-    }
-  };
-
-  const handleDeleteProduct = async (id: number) => {
-    if (!confirm("Excluir produto?")) return;
-    try {
-      await api.delete(`/receipt/product/${id}`);
-      handleSuccess("Produto removido!");
-      if (selectedReceipt) await fetchProducts(selectedReceipt.id);
-    } catch (err) {
-      handleError("Erro ao excluir produto.", err);
-    }
-  };
-
-  /* ============================================================
-     Upload de Foto (atualiza preview + lista)
-  ============================================================ */
-  const handleUploadPhoto = async () => {
-    if (!selectedReceipt || !photoFile) return;
-
-    const formData = new FormData();
-    formData.append("photo", photoFile);
-
-    try {
-      await api.patch(`/receipt/${selectedReceipt.id}/photo/`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      handleSuccess("Foto enviada com sucesso!");
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      await fetchReceipts(); // atualiza a lista (inclui nova URL da foto)
-      await fetchProducts(selectedReceipt.id);
-    } catch (err) {
-      handleError("Erro ao enviar foto.", err);
     }
   };
 
@@ -205,101 +167,46 @@ export default function ReceiptPage() {
   ============================================================ */
   const handleCompleteReceipt = async () => {
     if (!selectedReceipt) return;
-    if (!confirm("Marcar receipt como completo?")) return;
-
+    if (!confirm("Marcar este recebimento como completo?")) return;
     try {
       await api.patch(`/receipt/${selectedReceipt.id}`, { completed: true });
-      handleSuccess("Receipt marcado como completo!");
-      await fetchReceipts();
-      setSelectedReceipt((prev) =>
-        prev ? { ...prev, completed: true } : null,
-      );
+      handleSuccess("Recebimento finalizado!");
+      fetchReceipts();
+      setOpenModal(false);
     } catch (err) {
-      handleError("Erro ao completar receipt.", err);
+      handleError("Erro ao finalizar receipt.", err);
     }
   };
 
   /* ============================================================
-     Itens – Linhas
+     Ver Foto
   ============================================================ */
-  const handleAddLine = () => {
-    setNewItems((prev) => [
-      ...prev,
-      {
-        product_code: "",
-        product_name: "",
-        quantity_system: "",
-        quantity_real: "",
-      },
-    ]);
-  };
-
-  const handleChangeLine = (
-    index: number,
-    field: keyof ReceiptProduct,
-    value: string,
-  ) => {
-    setNewItems((prev) =>
-      prev.map((i, idx) => (idx === index ? { ...i, [field]: value } : i)),
-    );
-  };
-
-  const handleAddItems = async () => {
-    if (!selectedReceipt) return;
-
-    try {
-      for (const item of newItems) {
-        if (!item.product_code || !item.product_name) continue;
-
-        await api.post("/receipt/product/", {
-          receipt_id: selectedReceipt.id,
-          product_code: Number(item.product_code),
-          product_name: item.product_name,
-          quantity_system: Number(item.quantity_system) || 0,
-          quantity_real: Number(item.quantity_real) || 0,
-          diference:
-            Number(item.quantity_real || 0) - Number(item.quantity_system || 0),
-          local: selectedReceipt.local,
-          created_date: dayjs().format("YYYY-MM-DD"),
-          new_product: false,
-        });
-      }
-      handleSuccess("Itens adicionados!");
-      setOpenAddItemModal(false);
-      setNewItems([
-        {
-          product_code: "",
-          product_name: "",
-          quantity_system: "",
-          quantity_real: "",
-        },
-      ]);
-      await fetchProducts(selectedReceipt.id);
-    } catch (err) {
-      handleError("Erro ao adicionar itens.", err);
+  const handleViewPhoto = () => {
+    if (selectedReceipt?.photo) {
+      const photoUrl = selectedReceipt.photo.startsWith("http")
+        ? selectedReceipt.photo
+        : `${import.meta.env.VITE_API_URL || ""}${selectedReceipt.photo}`;
+      window.open(photoUrl, "_blank");
+    } else {
+      handleError("Nenhuma foto disponível para este recebimento.");
     }
   };
 
   /* ============================================================
      Modais
   ============================================================ */
-  const openReceiptModal = async (receipt: Receipt) => {
+  const openReceiptModal = (receipt: Receipt) => {
     setSelectedReceipt(receipt);
-    await fetchProducts(receipt.id);
     setOpenModal(true);
   };
 
-  const closeReceiptModal = async () => {
+  const closeReceiptModal = () => {
     setOpenModal(false);
     setSelectedReceipt(null);
-    setProducts([]);
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    await fetchReceipts();
   };
 
   /* ============================================================
-     Ordenação + Paginação (10 por página)
+     Ordenação + Paginação
   ============================================================ */
   const sortedReceipts = useMemo(() => {
     return [...receipts].sort((a, b) =>
@@ -345,7 +252,7 @@ export default function ReceiptPage() {
         </div>
         <div className="flex justify-end">
           <Button onClick={() => setOpenCreateModal(true)} size="sm">
-            Cadastrar
+            Novo Recebimento
           </Button>
         </div>
       </div>
@@ -399,24 +306,9 @@ export default function ReceiptPage() {
                         outline
                         onClick={() => openReceiptModal(r)}
                       >
-                        Gerenciar
+                        Visualizar
                       </Button>
 
-                      {/* Foto sempre visível se completed */}
-                      {r.completed && (
-                        <Button
-                          size="xs"
-                          color="info"
-                          onClick={() => {
-                            setSelectedReceipt(r);
-                            setShowPhotoModal(true);
-                          }}
-                        >
-                          Ver Foto
-                        </Button>
-                      )}
-
-                      {/* Deletar só se NÃO completado */}
                       {!r.completed && (
                         <Button
                           size="xs"
@@ -452,17 +344,58 @@ export default function ReceiptPage() {
 
       {/* Criar Receipt */}
       <Modal show={openCreateModal} onClose={() => setOpenCreateModal(false)}>
-        <ModalHeader>Cadastrar recebimento</ModalHeader>
+        <ModalHeader>Novo Recebimento</ModalHeader>
         <ModalBody>
-          <Label>Data</Label>
-          <TextInput
-            type="date"
-            value={newReceipt.created_date}
-            onChange={(e) =>
-              setNewReceipt((p) => ({ ...p, created_date: e.target.value }))
-            }
-            className="mt-2"
-          />
+          <div className="space-y-4">
+            <div>
+              <Label>Data</Label>
+              <TextInput
+                type="date"
+                value={newReceipt.created_date}
+                onChange={(e) =>
+                  setNewReceipt((p) => ({ ...p, created_date: e.target.value }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Quantidade</Label>
+              <TextInput
+                type="number"
+                placeholder="0"
+                value={newReceipt.quantity || ""}
+                onChange={(e) =>
+                  setNewReceipt((p) => ({
+                    ...p,
+                    quantity: Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div>
+              <Label>Foto (obrigatória)</Label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPhotoFile(file);
+                    setPhotoPreview(URL.createObjectURL(file));
+                  }
+                }}
+                className="mt-2 block w-full text-sm text-gray-300 file:mr-4 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+              />
+              {photoPreview && (
+                <img
+                  src={photoPreview}
+                  alt="Preview"
+                  className="mt-3 h-32 w-32 rounded-lg object-cover shadow"
+                />
+              )}
+            </div>
+          </div>
         </ModalBody>
         <ModalFooter>
           <Button onClick={handleCreateReceipt}>Criar</Button>
@@ -472,290 +405,39 @@ export default function ReceiptPage() {
         </ModalFooter>
       </Modal>
 
-      {/* Modal Itens */}
-      <Modal show={openModal} onClose={closeReceiptModal} size="6xl">
-        <ModalHeader className="flex items-center gap-2">
-          Receipt #{selectedReceipt?.id} — {selectedReceipt?.user_name}
-          {selectedReceipt?.completed && (
-            <Badge color="success" size="sm">
-              COMPLETO
-            </Badge>
-          )}
-        </ModalHeader>
+      {/* Visualizar Detalhes */}
+      <Modal show={openModal} onClose={closeReceiptModal}>
+        <ModalHeader>Recebimento #{selectedReceipt?.id}</ModalHeader>
         <ModalBody>
-          {/* Upload de Foto */}
-          {!selectedReceipt?.completed && (
-            <div className="mb-6 rounded-lg border border-gray-600 bg-gray-800 p-5">
-              <Label className="mb-3 block text-lg font-semibold">
-                Enviar foto da prancheta
-              </Label>
-              <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPhotoFile(file);
-                      setPhotoPreview(URL.createObjectURL(file));
-                    }
-                  }}
-                  className="block w-full text-sm text-gray-300 file:mr-4 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
-                />
-                {photoPreview && (
-                  <img
-                    src={photoPreview}
-                    alt="Preview"
-                    className="h-24 w-24 rounded object-cover shadow"
-                  />
-                )}
-                <Button
-                  size="sm"
-                  onClick={handleUploadPhoto}
-                  disabled={!photoFile}
-                >
-                  Enviar
-                </Button>
-              </div>
+          {selectedReceipt && (
+            <div className="space-y-3">
+              <p>
+                <strong>Data:</strong>{" "}
+                {dayjs(selectedReceipt.created_date).format("DD/MM/YYYY")}
+              </p>
+              <p>
+                <strong>Quantidade:</strong> {selectedReceipt.quantity ?? 0}
+              </p>
+              <p>
+                <strong>Local:</strong> {selectedReceipt.local}
+              </p>
             </div>
-          )}
-
-          {/* Tabela de Produtos */}
-          {products.length > 0 ? (
-            <div className="overflow-x-auto rounded-lg border border-gray-700">
-              <Table hoverable>
-                <TableHead>
-                  <TableRow className="bg-gray-900">
-                    <TableHeadCell>Código</TableHeadCell>
-                    <TableHeadCell>Produto</TableHeadCell>
-                    <TableHeadCell className="text-center">
-                      Qtd Sistema
-                    </TableHeadCell>
-                    <TableHeadCell className="text-center">
-                      Qtd Real
-                    </TableHeadCell>
-                    <TableHeadCell className="text-center">
-                      Diferença
-                    </TableHeadCell>
-                    {!selectedReceipt?.completed && (
-                      <TableHeadCell className="text-center">
-                        Ação
-                      </TableHeadCell>
-                    )}
-                  </TableRow>
-                </TableHead>
-                <TableBody className="divide-y divide-gray-700">
-                  {products.map((p) => (
-                    <TableRow key={p.id} className="bg-gray-800/50">
-                      <TableCell>{p.product_code}</TableCell>
-                      <TableCell>{p.product_name}</TableCell>
-                      <TableCell className="text-center">
-                        {p.quantity_system ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {p.quantity_real ?? "-"}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {p.diference ?? "-"}
-                      </TableCell>
-                      {!selectedReceipt?.completed && (
-                        <TableCell className="text-center">
-                          <Button
-                            size="xs"
-                            color="failure"
-                            onClick={() => handleDeleteProduct(p.id!)}
-                          >
-                            Remover
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            <p className="py-8 text-center text-gray-400">
-              Nenhum produto cadastrado.
-            </p>
           )}
         </ModalBody>
-        <ModalFooter className="flex flex-wrap justify-between gap-2">
-          <div className="flex gap-2">
-            {!selectedReceipt?.completed && (
-              <>
-                <Button onClick={() => setOpenAddItemModal(true)} size="sm">
-                  Adicionar produtos
-                </Button>
-                <Button color="green" size="sm" onClick={handleCompleteReceipt}>
-                  Finalizar
-                </Button>
-              </>
-            )}
-            {selectedReceipt?.photo && (
-              <Button
-                color="purple"
-                size="sm"
-                onClick={() => setShowPhotoModal(true)}
-              >
-                Visualizar prancheta
-              </Button>
-            )}
-          </div>
-          <Button color="gray" size="sm" onClick={closeReceiptModal}>
-            Fechar
+        <ModalFooter className="flex gap-2">
+          <Button color="purple" onClick={handleViewPhoto}>
+            Ver Foto
           </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Adicionar Itens */}
-      <Modal
-        show={openAddItemModal}
-        onClose={() => setOpenAddItemModal(false)}
-        size="5xl"
-      >
-        <ModalHeader>Adicionar Itens ao Receipt</ModalHeader>
-        <ModalBody>
-          <div className="overflow-x-auto rounded-lg border border-gray-700">
-            <Table hoverable>
-              <TableHead>
-                <TableRow className="bg-gray-900">
-                  <TableHeadCell>Código</TableHeadCell>
-                  <TableHeadCell>Produto</TableHeadCell>
-                  <TableHeadCell className="text-center">
-                    Qtd Sistema
-                  </TableHeadCell>
-                  <TableHeadCell className="text-center">
-                    Qtd Real
-                  </TableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {newItems.map((item, idx) => (
-                  <ProductRow
-                    key={idx}
-                    index={idx}
-                    item={item}
-                    onChange={handleChangeLine}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="mt-5 flex justify-between">
-            <Button color="gray" size="sm" onClick={handleAddLine}>
-              + Nova Linha
+          {!selectedReceipt?.completed && (
+            <Button color="green" onClick={handleCompleteReceipt}>
+              Marcar como Finalizado
             </Button>
-            <Button onClick={handleAddItems} size="sm">
-              Salvar Itens
-            </Button>
-          </div>
-        </ModalBody>
-      </Modal>
-
-      {/* Visualizar Foto */}
-      <Modal
-        show={showPhotoModal}
-        onClose={() => setShowPhotoModal(false)}
-        size="lg"
-      >
-        <ModalHeader>Foto do Receipt #{selectedReceipt?.id}</ModalHeader>
-        <ModalBody className="flex justify-center p-6">
-          {selectedReceipt?.photo ? (
-            <img
-              src={
-                selectedReceipt.photo.startsWith("http")
-                  ? selectedReceipt.photo
-                  : `${
-                      import.meta.env.VITE_API_URL || ""
-                    }${selectedReceipt.photo}`
-              }
-              alt="Receipt"
-              className="max-h-96 rounded-lg object-contain shadow-xl"
-            />
-          ) : (
-            <div className="text-center">
-              <p className="text-xl font-semibold text-red-400">
-                Nenhuma foto enviada
-              </p>
-              <p className="mt-2 text-sm text-gray-400">
-                O receipt foi marcado como completo, mas não possui foto.
-              </p>
-            </div>
           )}
-        </ModalBody>
-        <ModalFooter>
-          <Button color="gray" onClick={() => setShowPhotoModal(false)}>
+          <Button color="gray" onClick={closeReceiptModal}>
             Fechar
           </Button>
         </ModalFooter>
       </Modal>
     </div>
-  );
-}
-
-/* ============================================================
-   Linha de Produto com busca automática
-============================================================ */
-function ProductRow({
-  index,
-  item,
-  onChange,
-}: {
-  index: number;
-  item: ReceiptProduct;
-  onChange: (i: number, f: keyof ReceiptProduct, v: string) => void;
-}) {
-  useEffect(() => {
-    if (!item.product_code) return;
-
-    const timeout = setTimeout(async () => {
-      try {
-        const { data } = await api.get(`/product/${item.product_code}`);
-        onChange(index, "product_name", data.name || "");
-      } catch {
-        onChange(index, "product_name", "");
-      }
-    }, 600);
-
-    return () => clearTimeout(timeout);
-  }, [item.product_code, index, onChange]);
-
-  return (
-    <TableRow className="bg-gray-800/50">
-      <TableCell>
-        <TextInput
-          value={item.product_code}
-          onChange={(e) => onChange(index, "product_code", e.target.value)}
-          placeholder="Código"
-          className="w-full"
-        />
-      </TableCell>
-      <TableCell>
-        <TextInput
-          value={item.product_name}
-          readOnly
-          placeholder="Nome do produto"
-          className="min-w-64"
-        />
-      </TableCell>
-      <TableCell>
-        <TextInput
-          type="number"
-          onChange={(e) => onChange(index, "quantity_system", e.target.value)}
-          placeholder="0"
-          className="text-center"
-        />
-      </TableCell>
-      <TableCell>
-        <TextInput
-          type="number"
-          onChange={(e) => onChange(index, "quantity_real", e.target.value)}
-          placeholder="0"
-          className="text-center"
-        />
-      </TableCell>
-    </TableRow>
   );
 }
