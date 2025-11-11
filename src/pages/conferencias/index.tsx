@@ -149,7 +149,7 @@ interface BotaoCadastrarProps {
   onAtualizar: () => void;
 }
 
-function BotaoCadastrar({ onAtualizar }: BotaoCadastrarProps) {
+export function BotaoCadastrar({ onAtualizar }: BotaoCadastrarProps) {
   const [openModal, setOpenModal] = useState(false);
 
   const handleClose = () => {
@@ -162,9 +162,15 @@ function BotaoCadastrar({ onAtualizar }: BotaoCadastrarProps) {
       <Button color="green" size="sm" onClick={() => setOpenModal(true)}>
         Cadastrar
       </Button>
-      <Modal show={openModal} onClose={handleClose}>
-        <ModalHeader>Cadastrar conferência</ModalHeader>
-        <ModalBody>
+
+      <Modal
+        show={openModal}
+        onClose={handleClose}
+        size="7xl" // 🧩 modal bem grande
+        className="overflow-y-auto" // 🔥 rolagem e responsividade
+      >
+        <ModalHeader>Cadastrar Conferência</ModalHeader>
+        <ModalBody className="p-4 dark:bg-gray-800">
           <CadastrarConferencia onSucesso={handleClose} />
         </ModalBody>
       </Modal>

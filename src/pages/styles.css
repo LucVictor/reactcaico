@@ -45,3 +45,14 @@
   text-align: center;
   z-index: 1; /* Garante que fique por cima do background */
 }
+
+/* Remove setas de inputs type=number */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}

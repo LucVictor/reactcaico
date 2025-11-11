@@ -93,9 +93,10 @@ export default function AdminPointsAnalytics() {
   );
 
   // Período 2
-  const [p2Start] = useState<Date>(dayjs().subtract(15, "day").toDate());
+  const [p2Start, setP2Start] = useState<Date>(
+    dayjs().subtract(15, "day").toDate(),
+  );
   const [p2End, setP2End] = useState<Date>(dayjs().toDate());
-
   // Modal
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userHistory, setUserHistory] = useState<
@@ -168,16 +169,6 @@ export default function AdminPointsAnalytics() {
     };
     loadAllPoints();
   }, []);
-
-  // Validação: p1End >= p1Start
-  useEffect(() => {
-    if (p1End < p1Start) setP1End(p1Start);
-  }, [p1Start, p1End]);
-
-  // Validação: p2End >= p2Start
-  useEffect(() => {
-    if (p2End < p2Start) setP2End(p2Start);
-  }, [p2Start, p2End]);
 
   // Filtrar pontos por dois períodos
   const { pointsP1, pointsP2 } = useMemo(() => {
@@ -348,10 +339,7 @@ export default function AdminPointsAnalytics() {
             <input
               type="date"
               value={dayjs(p1Start).format("YYYY-MM-DD")}
-              onChange={(e) => {
-                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
-                setP1Start(d);
-              }}
+              onChange={(e) => setP1Start(dayjs(e.target.value).toDate())}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
           </div>
@@ -363,10 +351,7 @@ export default function AdminPointsAnalytics() {
             <input
               type="date"
               value={dayjs(p1End).format("YYYY-MM-DD")}
-              onChange={(e) => {
-                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
-                setP1Start(d);
-              }}
+              onChange={(e) => setP1End(dayjs(e.target.value).toDate())}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
           </div>
@@ -379,10 +364,7 @@ export default function AdminPointsAnalytics() {
             <input
               type="date"
               value={dayjs(p2Start).format("YYYY-MM-DD")}
-              onChange={(e) => {
-                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
-                setP1Start(d);
-              }}
+              onChange={(e) => setP2Start(dayjs(e.target.value).toDate())}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
           </div>
@@ -394,10 +376,7 @@ export default function AdminPointsAnalytics() {
             <input
               type="date"
               value={dayjs(p2End).format("YYYY-MM-DD")}
-              onChange={(e) => {
-                const d = dayjs(e.target.value, "YYYY-MM-DD").toDate();
-                setP1Start(d);
-              }}
+              onChange={(e) => setP2End(dayjs(e.target.value).toDate())}
               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
           </div>

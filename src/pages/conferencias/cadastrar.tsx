@@ -1,156 +1,212 @@
-import { Button, Label, Spinner, TextInput } from "flowbite-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  Button,
+  Label,
+  Spinner,
+  Table,
+  TableHead,
+  TableHeadCell,
+  TableBody,
+  TableRow,
+  TableCell,
+  TextInput,
+} from "flowbite-react";
 import api from "../../api";
 import { useLocalDeEstoque } from "../localEstoque";
 
-export interface CadastrarProdutoConferencia {
+interface LinhaConferencia {
+  id: number;
   product_code: number;
+  name: string;
   quantity_real: number;
   quantity_system: number;
-  date_: string;
-  local: number;
 }
 
 export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
-  const [codigo, setCodigo] = useState<number>(0);
-  const [nome, setNome] = useState<string>("");
-  const [quantidade_fisico, setQuantidade_fisico] = useState<number>(0);
-  const [quantidade_sistema, setQuantidade_sistema] = useState<number>(0);
-  const [dataConferencia, setDataConferencia] = useState<string>("");
   const { idLocal } = useLocalDeEstoque();
-  const [modoContinuar, setModoContinuar] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(false); // ✅ novo estado de carregamento
+  const [dataConferencia, setDataConferencia] = useState<string>(() => {
+    const hoje = new Date();
+    return hoje.toISOString().split("T")[0];
+  });
+  const [linhas, setLinhas] = useState<LinhaConferencia[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const buscarProduto = async () => {
-      try {
-        const res = await api.get(`/product/${codigo}`);
-        const data = await res.data;
-        setNome(data.name);
-      } catch (error) {
-        console.error(error);
-        setNome("");
-      }
-    };
-
-    if (codigo) buscarProduto();
-  }, [codigo]);
-
-  const limparFormulario = () => {
-    setCodigo(0);
-    setNome("");
-    setQuantidade_fisico(0);
-    setQuantidade_sistema(0);
-    setDataConferencia("");
+  const adicionarLinha = () => {
+    setLinhas((prev) => [
+      ...prev,
+      {
+        id: Date.now(),
+        product_code: 0,
+        name: "",
+        quantity_real: 0,
+        quantity_system: 0,
+      },
+    ]);
   };
 
-  const enviarCadastro = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const removerLinha = (id: number) => {
+    setLinhas((prev) => prev.filter((linha) => linha.id !== id));
+  };
 
-    if (!nome) {
-      alert("Digite um código válido!!");
+  const atualizarLinha = (
+    id: number,
+    campo: keyof LinhaConferencia,
+    valor: any,
+  ) => {
+    setLinhas((prev) =>
+      prev.map((linha) =>
+        linha.id === id ? { ...linha, [campo]: valor } : linha,
+      ),
+    );
+  };
+
+  // Buscar nome do produto automaticamente
+  const buscarProduto = async (id: number, codigo: number) => {
+    if (!codigo) return;
+    try {
+      const res = await api.get(`/product/${codigo}`);
+      const data = res.data;
+      atualizarLinha(id, "name", data.name);
+    } catch {
+      atualizarLinha(id, "name", "");
+    }
+  };
+
+  const enviarTudo = async () => {
+    if (linhas.length === 0) {
+      alert("Adicione pelo menos um produto!");
       return;
     }
 
-    setIsLoading(true); // ✅ inicia o loading
-
+    setIsLoading(true);
     try {
-      const novaConferencia: CadastrarProdutoConferencia = {
-        product_code: codigo,
-        quantity_real: quantidade_fisico,
-        quantity_system: quantidade_sistema,
-        date_: dataConferencia,
-        local: idLocal,
-      };
-
-      const res = await api.post("/conference/", novaConferencia);
-      const data = await res.data;
-      console.log("Produto cadastrado:", data);
-      alert("Cadastro realizado com sucesso!");
-
-      const desejaContinuar = confirm("Deseja cadastrar outro produto?");
-      if (desejaContinuar) {
-        limparFormulario();
-        setModoContinuar(true);
-      } else {
-        setModoContinuar(false);
-        onSucesso();
+      for (const linha of linhas) {
+        if (!linha.name) continue;
+        const novaConferencia = {
+          product_code: linha.product_code,
+          quantity_real: linha.quantity_real,
+          quantity_system: linha.quantity_system,
+          date_: dataConferencia,
+          local: idLocal,
+        };
+        await api.post("/conference/", novaConferencia);
       }
+
+      alert("Todos os cadastros foram enviados com sucesso!");
+      setLinhas([]);
+      onSucesso();
     } catch (err) {
       console.error(err);
-      alert("Erro ao cadastrar produto");
+      alert("Erro ao enviar os cadastros!");
     } finally {
-      setIsLoading(false); // ✅ finaliza o loading
+      setIsLoading(false);
     }
   };
 
   return (
-    <form className="m-auto flex flex-col gap-4" onSubmit={enviarCadastro}>
-      <div>
-        <Label htmlFor="cproduto">Código</Label>
-        <TextInput
-          id="cproduto"
-          type="number"
-          placeholder="Digite o código do produto"
-          min="1"
-          value={codigo || ""}
-          onChange={(e) => setCodigo(Number(e.target.value))}
-          required
-        />
+    <div className="w-full p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <Label htmlFor="dataConferencia">Data da Conferência</Label>
+          <TextInput
+            id="dataConferencia"
+            type="date"
+            value={dataConferencia}
+            onChange={(e) => setDataConferencia(e.target.value)}
+            required
+          />
+        </div>
+        <Button color="blue" onClick={adicionarLinha}>
+          + Adicionar Produto
+        </Button>
       </div>
 
-      <div>
-        <Label htmlFor="nproduto">Nome</Label>
-        <TextInput id="nproduto" type="text" value={nome} readOnly required />
+      <div className="overflow-x-auto rounded-lg border shadow-sm">
+        <Table className="min-w-full table-auto">
+          <TableHead>
+            <TableHeadCell className="w-[15%] text-center">
+              Código
+            </TableHeadCell>
+            <TableHeadCell className="w-[35%] text-center">Nome</TableHeadCell>
+            <TableHeadCell className="w-[15%] text-center">
+              Qtd. Físico
+            </TableHeadCell>
+            <TableHeadCell className="w-[15%] text-center">
+              Qtd. Sistema
+            </TableHeadCell>
+            <TableHeadCell className="w-[20%] text-center">Ações</TableHeadCell>
+          </TableHead>
+          <TableBody>
+            {linhas.map((linha) => (
+              <TableRow key={linha.id}>
+                <TableCell className="w-36">
+                  <TextInput
+                    type="number"
+                    value={linha.product_code || ""}
+                    onChange={(e) => {
+                      const codigo = Number(e.target.value);
+                      atualizarLinha(linha.id, "product_code", codigo);
+                      buscarProduto(linha.id, codigo);
+                    }}
+                  />
+                </TableCell>
+                <TableCell className="w-9x1 text-center">
+                  {linha.name || "—"}
+                </TableCell>
+                <TableCell className="w-32">
+                  <TextInput
+                    type="number"
+                    step="0.001"
+                    onChange={(e) =>
+                      atualizarLinha(
+                        linha.id,
+                        "quantity_real",
+                        Number(e.target.value),
+                      )
+                    }
+                  />
+                </TableCell>
+                <TableCell className="w-32">
+                  <TextInput
+                    type="number"
+                    step="0.001"
+                    onChange={(e) =>
+                      atualizarLinha(
+                        linha.id,
+                        "quantity_system",
+                        Number(e.target.value),
+                      )
+                    }
+                  />
+                </TableCell>
+                <TableCell>
+                  <Button
+                    color="red"
+                    size="xs"
+                    className="mx-auto"
+                    onClick={() => removerLinha(linha.id)}
+                  >
+                    Remover
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
 
-      <div>
-        <Label htmlFor="qproduto_fisico">Quantidade Físico</Label>
-        <TextInput
-          id="qproduto_fisico"
-          type="number"
-          step={0.001}
-          placeholder="Digite a quantidade física"
-          onChange={(e) => setQuantidade_fisico(Number(e.target.value))}
-          required
-        />
+      <div className="mt-6 flex justify-end">
+        <Button color="green" disabled={isLoading} onClick={enviarTudo}>
+          {isLoading ? (
+            <>
+              <Spinner size="sm" className="mr-2" />
+              Enviando...
+            </>
+          ) : (
+            "Enviar Todos"
+          )}
+        </Button>
       </div>
-
-      <div>
-        <Label htmlFor="qproduto_sistema">Quantidade Sistema</Label>
-        <TextInput
-          id="qproduto_sistema"
-          type="number"
-          step={0.001}
-          placeholder="Digite a quantidade no sistema"
-          onChange={(e) => setQuantidade_sistema(Number(e.target.value))}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="vproduto">Data</Label>
-        <TextInput
-          id="vproduto"
-          type="date"
-          value={dataConferencia ?? ""}
-          onChange={(e) => setDataConferencia(e.target.value)}
-          required
-        />
-      </div>
-
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? (
-          <>
-            <Spinner size="sm" className="mr-2" />
-            Salvando...
-          </>
-        ) : modoContinuar ? (
-          "Cadastrar próximo produto"
-        ) : (
-          "Cadastrar"
-        )}
-      </Button>
-    </form>
+    </div>
   );
 }

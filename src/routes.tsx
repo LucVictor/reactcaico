@@ -19,6 +19,7 @@ import AdminPointsAnalytics from "./pages/admin/points/analise";
 import AdminConferenciaAnalytics from "./pages/admin/conference";
 import CreateTargetConference from "./pages/admin/target";
 import ReceiptPage from "./pages/recebimento";
+import ChecklistSemana from "./pages/checklist";
 
 export interface AppRoute {
   path: string;
@@ -59,6 +60,11 @@ export const routes: AppRoute[] = [
   {
     path: "/metas",
     element: <Layout pagina={<IndexMetas />} />,
+    protected: true,
+  },
+  {
+    path: "/checklist",
+    element: <Layout pagina={<ChecklistSemana />} />,
     protected: true,
   },
   {
