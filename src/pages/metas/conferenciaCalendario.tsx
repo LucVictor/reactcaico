@@ -251,10 +251,11 @@ export function ConferenciaCalendario() {
       {/* Resumo e progresso */}
       <div className="mb-6 text-center">
         <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Meta mensal: <strong>{meta ?? "—"}</strong> produtos Produtos
+          Meta mensal: <strong>{meta ?? "—"}</strong> conferência de produtos
         </p>
         <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Conferidos no mês: {produtosConferidos.length + workItems.length}
+          Produtos conferidos no mês:{" "}
+          {produtosConferidos.length + workItems.length}
         </p>
         <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
           Dias úteis com meta batida:{" "}
