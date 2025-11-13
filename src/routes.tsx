@@ -19,7 +19,8 @@ import AdminPointsAnalytics from "./pages/admin/points/analise";
 import AdminConferenciaAnalytics from "./pages/admin/conference";
 import CreateTargetConference from "./pages/admin/target";
 import ReceiptPage from "./pages/recebimento";
-
+import ChecklistSemana from "./pages/checklist";
+import ChecklistAdmin from "./pages/admin/checklist";
 export interface AppRoute {
   path: string;
   element: JSX.Element;
@@ -91,11 +92,22 @@ export const routes: AppRoute[] = [
     element: <Layout pagina={<IndexPoints />} />,
     protected: true,
   },
+  {
+    path: "/checklist",
+    element: <Layout pagina={<ChecklistSemana />} />,
+    protected: true,
+  },
 
   // Rotas admin
   {
     path: "/admin/logs",
     element: <Layout pagina={<LogsPagina />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/checklist",
+    element: <Layout pagina={<ChecklistAdmin />} />,
     protected: true,
     adminOnly: true,
   },

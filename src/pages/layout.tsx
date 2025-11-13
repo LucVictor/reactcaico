@@ -101,6 +101,9 @@ export default function Layout({ pagina }: paginaProps) {
             <Button onClick={() => navigate("/pontos")} color="alternative">
               Pontos
             </Button>
+            <Button onClick={() => navigate("/checklist")} color="alternative">
+              Checklist
+            </Button>
           </ButtonGroup>
 
           <Dropdown
@@ -134,6 +137,13 @@ export default function Layout({ pagina }: paginaProps) {
             {user?.admin == 1 ? (
               <DropdownItem onClick={() => navigate("/admin/Logs")}>
                 <span className="block text-sm">Adm: Logs</span>
+              </DropdownItem>
+            ) : (
+              ""
+            )}
+            {user?.admin == 1 ? (
+              <DropdownItem onClick={() => navigate("/admin/checklist")}>
+                <span className="block text-sm">Adm: Checklist</span>
               </DropdownItem>
             ) : (
               ""
