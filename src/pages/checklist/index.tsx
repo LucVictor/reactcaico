@@ -353,7 +353,7 @@ export default function ChecklistSemana() {
             <TableHead className="bg-gray-100 dark:bg-gray-700">
               <TableHeadCell className="w-48 text-center">Tarefa</TableHeadCell>
               {diasSemana.map((dia) => (
-                <TableHeadCell key={dia} className="text-center">
+                <TableHeadCell key={dia}>
                   {dayjs(dia).format("ddd DD/MM")}
                 </TableHeadCell>
               ))}
@@ -366,8 +366,8 @@ export default function ChecklistSemana() {
                     const status = tarefa.status[dia];
                     const icon = status ? "✅" : "❌";
                     const colorClass = status
-                      ? "text-green-600 hover:bg-green-200"
-                      : "text-red-500 hover:bg-red-200";
+                      ? "text-green-600 text-center hover:bg-green-200"
+                      : "text-red-500 text-center hover:bg-red-200";
 
                     const meta = metaPorDia[dia] ?? 30;
                     const feitos = conferidosPorDia[dia] ?? 0;
@@ -376,10 +376,11 @@ export default function ChecklistSemana() {
                       <TableCell key={dia}>
                         <Tooltip
                           content={`Conferidos: ${feitos} / Meta: ${meta}`}
+                          placement="top"
                         >
                           <button
                             onClick={() => abrirModal(tarefa, dia)}
-                            className={`flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none transition-transform hover:scale-110 ${colorClass}`}
+                            className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none transition-transform hover:scale-110 ${colorClass}`}
                           >
                             {icon}
                           </button>
