@@ -351,40 +351,62 @@ export default function ChecklistSemana() {
         <div className="overflow-x-auto rounded-xl shadow-md dark:bg-gray-800">
           <Table hoverable striped>
             <TableHead className="bg-gray-100 dark:bg-gray-700">
-              <TableHeadCell className="w-48 text-center">Tarefa</TableHeadCell>
+              <TableHeadCell className="w-48 text-center align-middle">
+                Tarefa
+              </TableHeadCell>
               {diasSemana.map((dia) => (
-                <TableHeadCell key={dia}>
+                <TableHeadCell key={dia} className="text-center align-middle">
                   {dayjs(dia).format("ddd DD/MM")}
                 </TableHeadCell>
               ))}
             </TableHead>
+
             <TableBody>
               {checklist.map((tarefa, i) => (
-                <TableRow key={i} className="text-center">
-                  <TableCell className="font-semibold">{tarefa.nome}</TableCell>
+                <TableRow key={i} className="text-center align-middle">
+                  <TableCell className="text-center align-middle font-semibold">
+                    {tarefa.nome}
+                  </TableCell>
                   {diasSemana.map((dia) => {
                     const status = tarefa.status[dia];
                     const icon = status ? "✅" : "❌";
                     const colorClass = status
-                      ? "text-green-600 text-center hover:bg-green-200"
-                      : "text-red-500 text-center hover:bg-red-200";
+                      ? "text-green-600 hover:bg-green-200"
+                      : "text-red-500 hover:bg-red-200";
 
                     const meta = metaPorDia[dia] ?? 30;
                     const feitos = conferidosPorDia[dia] ?? 0;
 
+                    // Tooltip apenas para "Conferência"
+                    const conteudoTooltip =
+                      tarefa.nome === "Conferência"
+                        ? `Conferidos: ${feitos} / Meta: ${meta}`
+                        : "";
+
+                    const botao = (
+                      <button
+                        onClick={() => abrirModal(tarefa, dia)}
+                        className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none transition-transform hover:scale-110 ${colorClass}`}
+                      >
+                        {icon}
+                      </button>
+                    );
+
                     return (
-                      <TableCell key={dia}>
-                        <Tooltip
-                          content={`Conferidos: ${feitos} / Meta: ${meta}`}
-                          placement="top"
-                        >
-                          <button
-                            onClick={() => abrirModal(tarefa, dia)}
-                            className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none transition-transform hover:scale-110 ${colorClass}`}
-                          >
-                            {icon}
-                          </button>
-                        </Tooltip>
+                      <TableCell key={dia} className="text-center align-middle">
+                        <div className="flex items-center justify-center">
+                          {tarefa.nome === "Conferência" ? (
+                            <Tooltip
+                              className="text-center"
+                              content={conteudoTooltip}
+                              placement="top"
+                            >
+                              {botao}
+                            </Tooltip>
+                          ) : (
+                            botao
+                          )}
+                        </div>
                       </TableCell>
                     );
                   })}

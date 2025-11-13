@@ -8,11 +8,13 @@ import {
   TableCell,
   Button,
   Select,
-  Spinner,
   Modal,
+  Spinner,
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Badge,
+  Tooltip,
 } from "flowbite-react";
 import dayjs from "dayjs";
 import api from "../../../api";
@@ -20,6 +22,56 @@ import api from "../../../api";
 interface User {
   id: number;
   name: string;
+}
+
+interface Log {
+  id: number;
+  action: string;
+  description: string;
+  user_id: number;
+  time_stamp: string;
+}
+
+interface ProdutoConferidoProps {
+  id: number;
+  product_name: string;
+  product_code: number;
+  quantity_real: number;
+  quantity_system: number;
+  diference: number;
+  cost_total: number;
+  created_date: string;
+  created_by: string;
+}
+
+interface ProdutoAvariaProps {
+  id: number;
+  product_code: string;
+  product_name: string;
+  quantity: number;
+  cost: number;
+  damaged_date: string;
+  cost_total: string;
+  created_date: string;
+  shelflife_date: string;
+  last_mod: string;
+  created_by: string;
+  type: number;
+  origin: number;
+  local: number;
+}
+
+interface Receipt {
+  id: number;
+  user_id: number;
+  user_name: string;
+  quantity?: number;
+  local: number;
+  created_date: string;
+  time_stamp?: string;
+  completed: boolean;
+  approved: boolean;
+  photo?: string | null;
 }
 
 interface ChecklistItem {
@@ -35,11 +87,19 @@ export default function AdminChecklist() {
   const [diasSemana, setDiasSemana] = useState<string[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [modoImpressao, setModoImpressao] = useState(false);
 
+  // Modal
   const [openModal, setOpenModal] = useState(false);
   const [tarefaSelecionada, setTarefaSelecionada] =
     useState<ChecklistItem | null>(null);
   const [diaSelecionado, setDiaSelecionado] = useState("");
+
+  // metas / contagens para tooltip
+  const [metaPorDia, setMetaPorDia] = useState<Record<string, number>>({});
+  const [conferidosPorDia, setConferidosPorDia] = useState<
+    Record<string, number>
+  >({});
 
   useEffect(() => {
     api.get<User[]>("/admin/users").then((res) => setUsers(res.data || []));
@@ -69,22 +129,22 @@ export default function AdminChecklist() {
         .subtract(1, "day")
         .format("YYYY-MM-DD");
 
-      // 🟢 Buscar meta mensal de conferência
+      // meta mensal
       const mesSelecionado = dayjs(selectedWeek).format("YYYY-MM");
       const metaRes = await api.get(`/target/conference/${mesSelecionado}`);
       const metaMensal = metaRes.data?.[0]?.quantity ?? 400;
 
-      // Buscar dados necessários
+      // buscar dados principais
       const [conferidosRes, logsRes, avariasRes, recebimentosRes] =
         await Promise.all([
-          api.get(`/conference/between`, {
+          api.get<ProdutoConferidoProps[]>("/conference/between", {
             params: { date1: inicio, date2: fim, user: selectedUser },
           }),
-          api.get(`/logs/`),
-          api.get(`/damaged/between`, {
+          api.get<Log[]>("/logs/"),
+          api.get<ProdutoAvariaProps[]>("/damaged/between", {
             params: { date1: inicio, date2: fim },
           }),
-          api.get(`/receipt/`),
+          api.get<Receipt[]>("/receipt/"),
         ]);
 
       const conferidos = conferidosRes.data || [];
@@ -92,15 +152,28 @@ export default function AdminChecklist() {
       const avariasAll = avariasRes.data || [];
       const recebimentosAll = recebimentosRes.data || [];
 
-      // 🧮 Calcular total de conferências no mês (para meta diária)
+      // filtrar avarias e recebimentos pelo usuário admin selecionado
+      const usuarioNome = users.find((u) => u.id === selectedUser)?.name;
+      const avarias = avariasAll.filter((a) => a.created_by === usuarioNome);
+      const recebimentos = recebimentosAll.filter(
+        (r) => r.user_id === selectedUser,
+      );
+
+      // LOGS DE VENCIMENTO (corrigido) - filtrar apenas ações relevantes e descrição contendo 'vencimento'
+      const logsVencimentos = logs.filter(
+        (log) =>
+          log.user_id === Number(selectedUser) &&
+          ["Cadastrar", "Editar", "Excluir"].includes(log.action) &&
+          (log.description || "").toLowerCase().includes("vencimento"),
+      );
+
+      // Buscar conferências do mês (para meta diária)
       const primeiroDiaMes = dayjs(selectedWeek)
         .startOf("month")
-        .toISOString()
-        .slice(0, 10);
+        .format("YYYY-MM-DD");
       const ultimoDiaMes = dayjs(selectedWeek)
         .endOf("month")
-        .toISOString()
-        .slice(0, 10);
+        .format("YYYY-MM-DD");
 
       const mesConferidosRes = await api.get(`/conference/between`, {
         params: {
@@ -111,14 +184,16 @@ export default function AdminChecklist() {
       });
       const conferidosMes = mesConferidosRes.data || [];
 
-      // Agrupar por dia
-      const conferidosPorDia: Record<string, number> = {};
+      // agrupar conferidos por dia
+      const confPorDia: Record<string, number> = {};
       conferidosMes.forEach((p: any) => {
-        const dia = p.created_date.split("T")[0];
-        conferidosPorDia[dia] = (conferidosPorDia[dia] || 0) + 1;
+        const dia = p.created_date?.split("T")?.[0];
+        if (!dia) return;
+        confPorDia[dia] = (confPorDia[dia] || 0) + 1;
       });
+      setConferidosPorDia(confPorDia);
 
-      // Calcular metas diárias com base nos dias úteis do mês
+      // calcular meta diária considerando dias úteis
       const [ano, mes] = mesSelecionado.split("-").map(Number);
       const diasNoMes = new Date(ano, mes, 0).getDate();
 
@@ -130,7 +205,7 @@ export default function AdminChecklist() {
 
       let restante = metaMensal;
       let diasRestantes = diasUteis.length;
-      const metaPorDia: Record<string, number> = {};
+      const metaPorDiaTemp: Record<string, number> = {};
 
       for (let i = 1; i <= diasNoMes; i++) {
         const data = new Date(ano, mes - 1, i);
@@ -142,27 +217,29 @@ export default function AdminChecklist() {
           diasRestantes > 0 && !fimDeSemana
             ? Math.round(restante / diasRestantes)
             : 0;
-        const quantidade = conferidosPorDia[formato] || 0;
+        const quantidade = confPorDia[formato] || 0;
 
         if (!fimDeSemana) {
           restante -= quantidade;
           diasRestantes--;
         }
 
-        metaPorDia[formato] = metaDia;
+        metaPorDiaTemp[formato] = metaDia;
       }
 
-      // 🧩 Substituir o cálculo fixo (>= 30) por meta diária
+      setMetaPorDia(metaPorDiaTemp);
+
+      // status conferência (com meta)
       const statusConferencia: Record<string, boolean> = {};
       dias.forEach((dia) => {
         const count = conferidos.filter(
           (c: any) => Boolean(c.created_date) && c.created_date.startsWith(dia),
         ).length;
-        const metaDia = metaPorDia[dia] ?? 30; // fallback
+        const metaDia = metaPorDiaTemp[dia] ?? 30;
         statusConferencia[dia] = count >= metaDia;
       });
 
-      // Restante igual antes
+      // helper para gerar status por campo de data
       const gerarStatus = (dados: any[], campoData: string) => {
         const status: Record<string, boolean> = {};
         dias.forEach((dia) => {
@@ -173,21 +250,9 @@ export default function AdminChecklist() {
         return status;
       };
 
-      const statusVencimentos = gerarStatus(
-        logs.filter((l: any) => l.user_id === selectedUser),
-        "time_stamp",
-      );
-      const statusAvarias = gerarStatus(
-        avariasAll.filter(
-          (a: any) =>
-            a.created_by === users.find((u) => u.id === selectedUser)?.name,
-        ),
-        "created_date",
-      );
-      const statusRecebimentos = gerarStatus(
-        recebimentosAll.filter((r: any) => r.user_id === selectedUser),
-        "created_date",
-      );
+      const statusVencimentos = gerarStatus(logsVencimentos, "time_stamp");
+      const statusAvarias = gerarStatus(avarias, "created_date");
+      const statusRecebimentos = gerarStatus(recebimentos, "created_date");
 
       const statusNegativos: Record<string, boolean> = {};
       dias.forEach((dia) => {
@@ -208,22 +273,17 @@ export default function AdminChecklist() {
         },
         {
           nome: "Validades",
-          registros: logs.filter((l: any) => l.user_id === selectedUser),
+          registros: logsVencimentos,
           status: statusVencimentos,
         },
         {
           nome: "Avarias",
-          registros: avariasAll.filter(
-            (a: any) =>
-              a.created_by === users.find((u) => u.id === selectedUser)?.name,
-          ),
+          registros: avarias,
           status: statusAvarias,
         },
         {
           nome: "Recebimento",
-          registros: recebimentosAll.filter(
-            (r: any) => r.user_id === selectedUser,
-          ),
+          registros: recebimentos,
           status: statusRecebimentos,
         },
         {
@@ -236,6 +296,12 @@ export default function AdminChecklist() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // limpa checklist quando mudar usuário/semana
+    if (!selectedUser) setChecklist([]);
+  }, [selectedUser]);
+
   const abrirModal = (tarefa: ChecklistItem, dia: string) => {
     setTarefaSelecionada(tarefa);
     setDiaSelecionado(dia);
@@ -246,11 +312,11 @@ export default function AdminChecklist() {
     if (!t) return [];
     const campo = t.nome === "Validades" ? "time_stamp" : "created_date";
     return t.registros.filter(
-      (r) => Boolean(r[campo]) && r[campo].startsWith(dia),
+      (r: any) => Boolean(r[campo]) && r[campo].startsWith(dia),
     );
   };
 
-  // 🟢 Função para gerar e baixar CSV
+  // CSV (apenas admin)
   const baixarCSV = () => {
     if (checklist.length === 0) return;
 
@@ -265,7 +331,10 @@ export default function AdminChecklist() {
           r.shelflife_date ||
           "";
         Object.entries(r).forEach(([campo, valor]) => {
-          csv += `${t.nome},"${data}","${campo}","${String(valor).replace(/"/g, "'")}"\n`;
+          csv += `${t.nome},"${data}","${campo}","${String(valor).replace(
+            /"/g,
+            "'",
+          )}"\n`;
         });
       });
     });
@@ -277,61 +346,91 @@ export default function AdminChecklist() {
     const userName =
       users.find((u) => u.id === selectedUser)?.name?.replace(/\s/g, "_") ||
       "user";
-    a.download = `checklist_${userName}_${dayjs(selectedWeek).format("YYYY-MM-DD")}.csv`;
+    a.download = `checklist_${userName}_${dayjs(selectedWeek).format(
+      "YYYY-MM-DD",
+    )}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
+  const handlePrint = () => {
+    setModoImpressao(true);
+    setTimeout(() => {
+      window.print();
+      setModoImpressao(false);
+    }, 100);
+  };
+
   return (
-    <div className="space-y-6 p-6">
-      <h1 className="text-center text-2xl font-bold">Checklist Admin</h1>
+    <div
+      className={`m-5 space-y-6 rounded-2xl p-6 ${
+        modoImpressao ? "bg-white" : "bg-gray-800 opacity-95 dark:bg-gray-800"
+      }`}
+    >
+      {!modoImpressao && (
+        <div className="flex flex-col items-center justify-between print:hidden">
+          <h1 className="w-full text-center text-2xl font-bold text-white">
+            Checklist Admin
+          </h1>
+          <div className="flex w-full items-end justify-end gap-2">
+            <Button color="gray" onClick={handlePrint}>
+              🖨️ Imprimir
+            </Button>
+            <Button
+              color="success"
+              onClick={baixarCSV}
+              disabled={checklist.length === 0}
+            >
+              ⬇️ Baixar CSV
+            </Button>
+          </div>
+        </div>
+      )}
 
-      {/* Seleção e botões */}
-      <div className="flex flex-wrap justify-center gap-4">
-        <Select
-          value={selectedUser}
-          onChange={(e) => setSelectedUser(Number(e.target.value))}
-          className="max-w-xs"
-        >
-          <option value="">Selecione um usuário</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </Select>
-
-        <Select
-          value={selectedWeek}
-          onChange={(e) => setSelectedWeek(e.target.value)}
-          className="max-w-xs"
-        >
-          <option value="">Selecione a semana</option>
-          {[...Array(6)].map((_, i) => {
-            const data = dayjs().subtract(i, "week").startOf("week");
-            return (
-              <option key={i} value={data.toISOString()}>
-                Semana de {data.add(1, "day").format("DD/MM/YYYY")}
+      {/* Seleções */}
+      {!modoImpressao && (
+        <div className="flex flex-wrap justify-center gap-4 print:hidden">
+          <Select
+            value={selectedUser}
+            onChange={(e) =>
+              setSelectedUser(
+                e.target.value === "" ? "" : Number(e.target.value),
+              )
+            }
+            className="max-w-xs"
+          >
+            <option value="">Selecione um usuário</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
               </option>
-            );
-          })}
-        </Select>
+            ))}
+          </Select>
 
-        <Button
-          onClick={carregarChecklist}
-          disabled={!selectedUser || !selectedWeek}
-        >
-          Buscar
-        </Button>
+          <Select
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(e.target.value)}
+            className="max-w-xs"
+          >
+            <option value="">Selecione a semana</option>
+            {[...Array(6)].map((_, i) => {
+              const data = dayjs().subtract(i, "week").startOf("week");
+              return (
+                <option key={i} value={data.toISOString()}>
+                  Semana de {data.add(1, "day").format("DD/MM/YYYY")}
+                </option>
+              );
+            })}
+          </Select>
 
-        <Button
-          color="success"
-          disabled={checklist.length === 0}
-          onClick={baixarCSV}
-        >
-          ⬇️ Baixar CSV
-        </Button>
-      </div>
+          <Button
+            onClick={carregarChecklist}
+            disabled={!selectedUser || !selectedWeek}
+          >
+            Buscar
+          </Button>
+        </div>
+      )}
 
       {/* Carregando */}
       {loading && (
@@ -345,32 +444,59 @@ export default function AdminChecklist() {
         <div className="overflow-x-auto rounded-xl shadow-md dark:bg-gray-800">
           <Table hoverable striped>
             <TableHead className="bg-gray-100 dark:bg-gray-700">
-              <TableHeadCell className="w-48 text-center">Tarefa</TableHeadCell>
+              <TableHeadCell className="w-48 text-center align-middle">
+                Tarefa
+              </TableHeadCell>
               {diasSemana.map((dia) => (
-                <TableHeadCell key={dia} className="text-center">
+                <TableHeadCell key={dia} className="text-center align-middle">
                   {dayjs(dia).format("ddd DD/MM")}
                 </TableHeadCell>
               ))}
             </TableHead>
+
             <TableBody>
               {checklist.map((tarefa, i) => (
-                <TableRow key={i} className="text-center">
-                  <TableCell className="font-semibold">{tarefa.nome}</TableCell>
+                <TableRow key={i} className="text-center align-middle">
+                  <TableCell className="text-center align-middle font-semibold">
+                    {tarefa.nome}
+                  </TableCell>
                   {diasSemana.map((dia) => {
                     const status = tarefa.status[dia];
                     const icon = status ? "✅" : "❌";
                     const colorClass = status
                       ? "text-green-600 hover:bg-green-200"
                       : "text-red-500 hover:bg-red-200";
+
+                    const meta = metaPorDia[dia] ?? 30;
+                    const feitos = conferidosPorDia[dia] ?? 0;
+                    const conteudoTooltip =
+                      tarefa.nome === "Conferência"
+                        ? `Conferidos: ${feitos} / Meta: ${meta}`
+                        : "";
+
+                    const botao = (
+                      <button
+                        onClick={() => abrirModal(tarefa, dia)}
+                        className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none transition-transform hover:scale-110 ${colorClass}`}
+                      >
+                        {icon}
+                      </button>
+                    );
+
                     return (
-                      <TableCell key={dia}>
+                      <TableCell key={dia} className="text-center align-middle">
                         <div className="flex items-center justify-center">
-                          <button
-                            onClick={() => abrirModal(tarefa, dia)}
-                            className={`flex h-10 w-10 items-center justify-center rounded-full text-xl leading-none ${colorClass}`}
-                          >
-                            {icon}
-                          </button>
+                          {tarefa.nome === "Conferência" ? (
+                            <Tooltip
+                              className="text-center"
+                              content={conteudoTooltip}
+                              placement="top"
+                            >
+                              {botao}
+                            </Tooltip>
+                          ) : (
+                            botao
+                          )}
                         </div>
                       </TableCell>
                     );
@@ -382,7 +508,7 @@ export default function AdminChecklist() {
         </div>
       )}
 
-      {/* Modal de detalhes */}
+      {/* Modal */}
       <Modal show={openModal} size="4xl" onClose={() => setOpenModal(false)}>
         <ModalHeader>
           {tarefaSelecionada?.nome} —{" "}
@@ -399,24 +525,126 @@ export default function AdminChecklist() {
                   </p>
                 );
 
-              return (
-                <Table>
-                  <TableHead>
-                    {Object.keys(regs[0]).map((c) => (
-                      <TableHeadCell key={c}>{c}</TableHeadCell>
-                    ))}
-                  </TableHead>
-                  <TableBody>
-                    {regs.map((r: any) => (
-                      <TableRow key={r.id}>
-                        {Object.keys(r).map((c) => (
-                          <TableCell key={c}>{String(r[c])}</TableCell>
+              switch (tarefaSelecionada.nome) {
+                case "Conferência":
+                  return (
+                    <Table>
+                      <TableHead>
+                        <TableHeadCell>Código</TableHeadCell>
+                        <TableHeadCell>Produto</TableHeadCell>
+                        <TableHeadCell>Diferença</TableHeadCell>
+                        <TableHeadCell>Usuário</TableHeadCell>
+                      </TableHead>
+                      <TableBody>
+                        {regs.map((r: ProdutoConferidoProps) => (
+                          <TableRow key={r.id}>
+                            <TableCell>{r.product_code}</TableCell>
+                            <TableCell>{r.product_name}</TableCell>
+                            <TableCell>{r.diference}</TableCell>
+                            <TableCell>{r.created_by}</TableCell>
+                          </TableRow>
                         ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              );
+                      </TableBody>
+                    </Table>
+                  );
+                case "Validades":
+                  return (
+                    <Table>
+                      <TableHead>
+                        <TableHeadCell>Ação</TableHeadCell>
+                        <TableHeadCell>Descrição</TableHeadCell>
+                        <TableHeadCell>Data</TableHeadCell>
+                      </TableHead>
+                      <TableBody>
+                        {regs.map((r: Log) => (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <Badge
+                                color={
+                                  r.action === "Cadastrar"
+                                    ? "success"
+                                    : r.action === "Editar"
+                                      ? "warning"
+                                      : "failure"
+                                }
+                              >
+                                {r.action}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{r.description}</TableCell>
+                            <TableCell>
+                              {dayjs(r.time_stamp).format("DD/MM/YYYY HH:mm")}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+                case "Avarias":
+                  return (
+                    <Table>
+                      <TableHead>
+                        <TableHeadCell>Código</TableHeadCell>
+                        <TableHeadCell>Produto</TableHeadCell>
+                        <TableHeadCell>Quantidade</TableHeadCell>
+                        <TableHeadCell>Usuário</TableHeadCell>
+                      </TableHead>
+                      <TableBody>
+                        {regs.map((r: ProdutoAvariaProps) => (
+                          <TableRow key={r.id}>
+                            <TableCell>{r.product_code}</TableCell>
+                            <TableCell>{r.product_name}</TableCell>
+                            <TableCell>{r.quantity}</TableCell>
+                            <TableCell>{r.created_by}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+                case "Negativos":
+                  return (
+                    <Table>
+                      <TableHead>
+                        <TableHeadCell>Código</TableHeadCell>
+                        <TableHeadCell>Produto</TableHeadCell>
+                        <TableHeadCell>Quantity System</TableHeadCell>
+                      </TableHead>
+                      <TableBody>
+                        {regs.map((r: ProdutoConferidoProps) => (
+                          <TableRow key={r.id}>
+                            <TableCell>{r.product_code}</TableCell>
+                            <TableCell>{r.product_name}</TableCell>
+                            <TableCell>{r.quantity_system}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+                default:
+                  // Recebimento ou fallback
+                  return (
+                    <Table>
+                      <TableHead>
+                        <TableHeadCell>ID</TableHeadCell>
+                        <TableHeadCell>Usuário</TableHeadCell>
+                        <TableHeadCell>Quantidade</TableHeadCell>
+                        <TableHeadCell>Data</TableHeadCell>
+                      </TableHead>
+                      <TableBody>
+                        {regs.map((r: Receipt) => (
+                          <TableRow key={r.id}>
+                            <TableCell>{r.id}</TableCell>
+                            <TableCell>{r.user_name}</TableCell>
+                            <TableCell>{r.quantity ?? "—"}</TableCell>
+                            <TableCell>
+                              {dayjs(r.created_date).format("DD/MM/YYYY HH:mm")}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  );
+              }
             })()
           ) : (
             <p>Nenhuma tarefa selecionada.</p>
