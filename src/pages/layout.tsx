@@ -70,10 +70,8 @@ export default function Layout({ pagina }: paginaProps) {
       {/* Navbar */}
       <div className="top-bar relative z-20 flex h-16 items-center justify-between p-2">
         {/* Logo */}
-        <div
-          className={`christmas-logo relative z-10 ${logoGlowEnabled ? "" : "no-glow"}`}
-        >
-          <img src={caicoLogo} width={60} alt="Logo" />
+        <div className={`christmas-logo ${logoGlowEnabled ? "logo-glow" : ""}`}>
+          <img src={caicoLogo} width={60} />
         </div>
 
         {/* Navegação */}
@@ -187,11 +185,9 @@ export default function Layout({ pagina }: paginaProps) {
                 setLogoGlowEnabled((prev) => !prev);
               }}
             >
-              <span className="block text-sm">
-                {snowEnabled && logoGlowEnabled
-                  ? "Desligar efeitos natalinos ✨"
-                  : "Ligar efeitos natalinos 🎄"}
-              </span>
+              {snowEnabled && logoGlowEnabled
+                ? "Desligar efeitos natalinos 🎄"
+                : "Ligar efeitos natalinos ✨"}
             </DropdownItem>
 
             <DropdownDivider />

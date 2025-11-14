@@ -114,3 +114,10 @@ input[type="number"] {
     box-shadow: 0 0 20px 6px rgba(34, 197, 94, 0.9); /* Verde */
   }
 }
+
+.logo-glow img {
+  border: 3px solid #e63946;
+  border-radius: 50%;
+  box-shadow: 0 0 15px 3px rgba(34, 197, 94, 0.8);
+  animation: logoGlow 2s ease-in-out infinite alternate;
+}
