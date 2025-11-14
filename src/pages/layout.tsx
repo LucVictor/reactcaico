@@ -1,5 +1,6 @@
 import { ReactNode, useEffect, useState } from "react";
 import caicoLogo from "../static/logo.png";
+import santahat from "../static/santa-hat.png";
 import { useAuthStore } from "./authStore";
 import { useLocalDeEstoque } from "./localEstoque";
 
@@ -16,7 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import api from "../api";
 import "./styles.css";
-
+import avatar from "../static/user.png";
 interface paginaProps {
   pagina: ReactNode;
 }
@@ -30,25 +31,24 @@ export default function Layout({ pagina }: paginaProps) {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const clearUser = useAuthStore((s) => s.clearUser);
-
   const { localName, setLocal } = useLocalDeEstoque();
   const [locais, setLocais] = useState<Local[]>([]);
+
   const logout = () => {
     clearUser();
     navigate("/login");
   };
 
+  const [snowEnabled, setSnowEnabled] = useState(true);
+  const [logoGlowEnabled, setLogoGlowEnabled] = useState(true);
+
   useEffect(() => {
     if (user && locais.length > 0) {
-      // procura o local correspondente ao id do token
       const localDoUsuario = locais.find((l) => l.id === user.local);
-      if (localDoUsuario) {
-        setLocal(localDoUsuario.id, localDoUsuario.name);
-      }
+      if (localDoUsuario) setLocal(localDoUsuario.id, localDoUsuario.name);
     }
   }, [user, locais, setLocal]);
 
-  // Busca locais da API
   useEffect(() => {
     async function fetchLocais() {
       try {
@@ -62,63 +62,77 @@ export default function Layout({ pagina }: paginaProps) {
   }, []);
 
   return (
-    <div className="dark flex-col">
-      <div className="dark flex h-full items-center justify-between p-2">
+    <div className="dark relative min-h-screen flex-col">
+      {/* Fundo e neve */}
+      <div className="background-animado"></div>
+      {snowEnabled && <div className="snow"></div>}
+
+      {/* Navbar */}
+      <div className="top-bar relative z-20 flex h-16 items-center justify-between p-2">
         {/* Logo */}
-        <div>
-          <img src={caicoLogo} width={60} />
+        <div
+          className={`christmas-logo relative z-10 ${logoGlowEnabled ? "" : "no-glow"}`}
+        >
+          <img src={caicoLogo} width={60} alt="Logo" />
         </div>
 
         {/* Navegação */}
-        <div className="m-1 flex justify-center gap-2 self-center align-middle">
+        <div className="flex gap-2">
           <ButtonGroup>
             <Button
               onClick={() => navigate("/vencimentos")}
               color="alternative"
             >
-              Vencimentos
+              🎄 Vencimentos
             </Button>
             <Button onClick={() => navigate("/avarias")} color="alternative">
-              Avarias
+              ❄️ Avarias
             </Button>
             <Button
               onClick={() => navigate("/conferencias")}
               color="alternative"
             >
-              Conferências
+              ⛄ Conferências
             </Button>
-
             <Button
               onClick={() => navigate("/recebimento")}
               color="alternative"
             >
-              Recebimentos
+              🎁 Recebimentos
             </Button>
             <Button onClick={() => navigate("/metas")} color="alternative">
-              Metas
+              ⭐ Metas
             </Button>
-
             <Button onClick={() => navigate("/pontos")} color="alternative">
-              Pontos
+              🔔 Pontos
             </Button>
             <Button onClick={() => navigate("/checklist")} color="alternative">
-              Checklist
+              🕯️ Checklist
             </Button>
           </ButtonGroup>
 
           <Dropdown
             arrowIcon={false}
             inline
+            className="dropdown-fix"
             label={
-              <Avatar
-                alt="User profile"
-                img={
-                  user?.profile_photo
-                    ? `${API_URL}/${user.profile_photo}`
-                    : "https://flowbite.com/docs/images/people/profile-picture-1.jpg"
-                }
-                rounded
-              />
+              <div className="relative inline-block">
+                <Avatar
+                  alt="User profile"
+                  img={
+                    user?.profile_photo
+                      ? `${API_URL}/${user.profile_photo}`
+                      : avatar
+                  }
+                  className="relative z-10 ring-2 ring-red-500"
+                  rounded
+                />
+                <img
+                  src={santahat}
+                  alt="Chapéu de Natal"
+                  className="absolute -top-3 -right-1 z-20 w-6 rotate-12"
+                />
+              </div>
             }
           >
             <DropdownHeader>
@@ -126,65 +140,68 @@ export default function Layout({ pagina }: paginaProps) {
                 {user ? user.name : "Carregando..."}
               </span>
             </DropdownHeader>
+
             <DropdownItem>
               <span className="block text-sm">
                 Local de estoque: {localName}
               </span>
             </DropdownItem>
             <DropdownItem onClick={() => navigate("/profile")}>
-              <span className="block text-sm">Perfil</span>
+              Perfil
             </DropdownItem>
-            {user?.admin == 1 ? (
-              <DropdownItem onClick={() => navigate("/admin/Logs")}>
-                <span className="block text-sm">Adm: Logs</span>
-              </DropdownItem>
-            ) : (
-              ""
-            )}
-            {user?.admin == 1 ? (
-              <DropdownItem onClick={() => navigate("/admin/checklist")}>
-                <span className="block text-sm">Adm: Checklist</span>
-              </DropdownItem>
-            ) : (
-              ""
-            )}
-            {user?.admin == 1 ? (
+
+            {user?.admin === 1 && (
               <>
+                <DropdownItem onClick={() => navigate("/admin/Logs")}>
+                  Adm: Logs
+                </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/checklist")}>
+                  Adm: Checklist
+                </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/pontos")}>
-                  <span className="block text-sm">Adm: Pontos</span>
+                  Adm: Pontos
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/rank")}>
-                  <span className="block text-sm">Adm: Rank</span>
+                  Adm: Rank
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/rank/analise")}>
-                  <span className="block text-sm">Adm: Rank Analise</span>
+                  Adm: Rank Analise
                 </DropdownItem>
                 <DropdownItem
                   onClick={() => navigate("/admin/conferencia/analise")}
                 >
-                  <span className="block text-sm">
-                    Adm: Conferência Analise
-                  </span>
+                  Adm: Conferência Analise
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/metas")}>
-                  <span className="block text-sm">Adm: Conferência Meta</span>
+                  Adm: Conferência Meta
                 </DropdownItem>
               </>
-            ) : (
-              ""
             )}
 
             <DropdownDivider />
-            <DropdownItem onClick={logout}>Sair</DropdownItem>
+
+            {/* Botão para ligar/desligar neve e brilho do logo */}
+            <DropdownItem
+              onClick={() => {
+                setSnowEnabled((prev) => !prev);
+                setLogoGlowEnabled((prev) => !prev);
+              }}
+            >
+              <span className="block text-sm">
+                {snowEnabled && logoGlowEnabled
+                  ? "Desligar efeitos natalinos ✨"
+                  : "Ligar efeitos natalinos 🎄"}
+              </span>
+            </DropdownItem>
+
+            <DropdownDivider />
+            <DropdownItem onClick={logout}>Sair 🔴</DropdownItem>
           </Dropdown>
         </div>
       </div>
 
-      {/* Background animado */}
-      <div className="background-animado"></div>
-
       {/* Página */}
-      <div>{pagina}</div>
+      <div className="relative z-10 p-4">{pagina}</div>
     </div>
   );
 }

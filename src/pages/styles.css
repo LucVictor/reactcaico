@@ -56,3 +56,61 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield; /* Firefox */
 }
+
+/* =========================================================
+   🌨️ EFEITO DE NEVE
+   ========================================================= */
+.snow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* não interfere em cliques */
+  background-image:
+    radial-gradient(white 1px, transparent 1px),
+    radial-gradient(white 1.5px, transparent 1.5px),
+    radial-gradient(white 2px, transparent 2px);
+  background-size:
+    80px 80px,
+    100px 100px,
+    120px 120px;
+  animation: snowFall 12s linear infinite;
+  opacity: 0.6;
+  z-index: 999; /* sobre o fundo, mas atrás da interface */
+}
+
+@keyframes snowFall {
+  0% {
+    background-position:
+      0 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      0 800px,
+      0 600px,
+      0 1000px;
+  }
+}
+
+/* =========================================================
+   🎅 LOGO COM BRILHO NATALINO
+   ========================================================= */
+.christmas-logo img {
+  border: 3px solid #e63946; /* Vermelho natal */
+  border-radius: 50%;
+  box-shadow: 0 0 15px 3px rgba(34, 197, 94, 0.8); /* Verde suave */
+  animation: logoGlow 2s ease-in-out infinite alternate;
+  background-color: rgb(104, 104, 104);
+}
+
+@keyframes logoGlow {
+  from {
+    box-shadow: 0 0 10px 3px rgba(220, 38, 38, 0.7); /* Vermelho */
+  }
+  to {
+    box-shadow: 0 0 20px 6px rgba(34, 197, 94, 0.9); /* Verde */
+  }
+}

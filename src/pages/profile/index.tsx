@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuthStore } from "../authStore";
 import { useNavigate } from "react-router-dom";
+import avatar from "../../static/user.png";
 
 import {
   Button,
@@ -155,7 +156,7 @@ function ProfileComponente() {
                 img={
                   user?.profile_photo
                     ? `${API_URL}/${user.profile_photo}`
-                    : "https://flowbite.com/docs/images/people/profile-picture-1.jpg"
+                    : avatar
                 }
                 size="xl"
                 rounded
