@@ -292,7 +292,9 @@ export function ConferenciaCalendario() {
               >
                 <TableCell className="font-medium">{d.dia}</TableCell>
                 <TableCell>{d.quantidade}</TableCell>
-                <TableCell>{d.metaDia || "-"}</TableCell>
+                <TableCell>
+                  {d.metaDia < 0 ? 0 : d.metaDia || "-"}
+                </TableCell>{" "}
                 <TableCell>
                   {d.fimDeSemana ? (
                     d.quantidade > 0 ? (

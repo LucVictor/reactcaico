@@ -32,13 +32,12 @@ export default function TableComponent() {
   const [produtosConferidos, setProdutosConferidos] = useState<
     ProdutoConferidoProps[]
   >([]);
-  const [workItems, setWorkItems] = useState<ProdutoConferidoProps[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const user = useAuthStore((state) => state.user);
 
   const totalProdutosConferidosDia = () => {
     const hojeFormatado = dayjs().format("YYYY-MM-DD");
-    return [...produtosConferidos, ...workItems].filter(
+    return [...produtosConferidos].filter(
       (d) =>
         d.created_date.split("T")[0] === hojeFormatado &&
         d.created_by == user?.name,
@@ -51,35 +50,15 @@ export default function TableComponent() {
     setIsLoading(true);
     try {
       const conferidos = await api.get("/conference/");
-      const work = await api.get("/work_conference/items/");
-
-      const workNormalized: ProdutoConferidoProps[] = work.data.map(
-        (w: any) => ({
-          id: w.id,
-          product_name: w.product_name,
-          product_code: w.product_code,
-          quantity_real: w.quantity_real,
-          quantity_system: w.quantity_system,
-          diference:
-            w.quantity_system && w.quantity_real
-              ? w.quantity_system - w.quantity_real
-              : 0,
-          cost_total: 0,
-          created_date: w.created_date,
-          created_by: w.created_by,
-        }),
-      );
 
       setProdutosConferidos(
         conferidos.data.filter(
           (d: ProdutoConferidoProps) => d.created_by == user?.name,
         ),
       );
-      setWorkItems(workNormalized.filter((d) => d.created_by == user?.name));
     } catch (err) {
       console.error(err);
       setProdutosConferidos([]);
-      setWorkItems([]);
     } finally {
       setIsLoading(false);
     }
@@ -117,10 +96,7 @@ export default function TableComponent() {
 
         <Card className="h-96 w-full max-w-2xl">
           {/* Card maior para o gráfico */}
-          <GraficoConferenciasDia
-            produtosConferidos={produtosConferidos}
-            workItems={workItems}
-          />
+          <GraficoConferenciasDia produtosConferidos={produtosConferidos} />
         </Card>
       </div>
 
@@ -139,7 +115,7 @@ export default function TableComponent() {
         <h2 className="text-center text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
           Listagem:
         </h2>
-        <TabelaDinamica produtos={[...produtosConferidos, ...workItems]} />
+        <TabelaDinamica produtos={[...produtosConferidos]} />
       </Card>
     </div>
   );
