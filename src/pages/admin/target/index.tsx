@@ -177,7 +177,6 @@ export default function CreateTargetConference() {
             className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <svg
-              xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"

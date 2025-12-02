@@ -26,6 +26,7 @@ export interface ProdutoConferidoProps {
   cost_total: number;
   created_date: string;
   created_by: string;
+  date_: string;
 }
 
 export default function TableComponent() {
@@ -39,8 +40,7 @@ export default function TableComponent() {
     const hojeFormatado = dayjs().format("YYYY-MM-DD");
     return [...produtosConferidos].filter(
       (d) =>
-        d.created_date.split("T")[0] === hojeFormatado &&
-        d.created_by == user?.name,
+        d.date_.split("T")[0] === hojeFormatado && d.created_by == user?.name,
     ).length;
   };
 

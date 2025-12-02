@@ -30,7 +30,7 @@ export interface ProdutoConferidoProps {
   quantity_system?: number | null;
   diference?: number | null;
   cost_total?: number | null;
-  created_date?: string;
+  date_?: string;
   created_by?: string;
   work_conference_id?: number;
   active?: boolean;
@@ -53,9 +53,9 @@ export default function TabelaDinamica({
   // Ordenar do mais recente para o mais antigo
   const produtosOrdenados = useMemo(() => {
     return [...produtos].sort((a, b) => {
-      if (!a.created_date) return 1;
-      if (!b.created_date) return -1;
-      return dayjs(b.created_date).valueOf() - dayjs(a.created_date).valueOf();
+      if (!a.date_) return 1;
+      if (!b.date_) return -1;
+      return dayjs(b.date_).valueOf() - dayjs(a.date_).valueOf();
     });
   }, [produtos]);
 
@@ -204,9 +204,7 @@ export default function TabelaDinamica({
                 className="bg-white dark:border-gray-700 dark:bg-gray-800"
               >
                 <TableCell>
-                  {p.created_date
-                    ? dayjs(p.created_date).format("DD/MM/YYYY")
-                    : "-"}
+                  {p.date_ ? dayjs(p.date_).format("DD/MM/YYYY") : "-"}
                 </TableCell>
                 <TableCell>{p.product_code}</TableCell>
                 <TableCell>{p.product_name}</TableCell>

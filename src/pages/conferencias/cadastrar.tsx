@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Button,
   Label,
@@ -28,6 +28,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
     const hoje = new Date();
     return hoje.toISOString().split("T")[0];
   });
+  const endRef = useRef<HTMLDivElement | null>(null);
   const [linhas, setLinhas] = useState<LinhaConferencia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -42,8 +43,9 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
         quantity_system: 0,
       },
     ]);
-  };
 
+    scrollToBottom();
+  };
   const removerLinha = (id: number) => {
     setLinhas((prev) => prev.filter((linha) => linha.id !== id));
   };
@@ -102,6 +104,11 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
       setIsLoading(false);
     }
   };
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      endRef.current?.scrollIntoView({ behavior: "auto" });
+    }, 50); // pequeno delay para a linha renderizar
+  };
 
   return (
     <div className="w-full p-4">
@@ -116,9 +123,6 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
             required
           />
         </div>
-        <Button color="blue" onClick={adicionarLinha}>
-          + Adicionar Produto
-        </Button>
       </div>
 
       <div className="overflow-x-auto rounded-lg border shadow-sm">
@@ -191,11 +195,15 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
                 </TableCell>
               </TableRow>
             ))}
+            <div ref={endRef}></div>
           </TableBody>
         </Table>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-end gap-2">
+        <Button color="blue" onClick={adicionarLinha}>
+          + Adicionar Produto
+        </Button>
         <Button color="green" disabled={isLoading} onClick={enviarTudo}>
           {isLoading ? (
             <>
