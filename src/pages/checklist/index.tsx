@@ -156,12 +156,14 @@ export default function ChecklistSemana() {
       const avariasAll = avariasRes.data || [];
       const recebimentosAll = recebimentosRes.data || [];
 
-      const avarias = avariasAll.filter((a) => a.created_by === user.name);
-      const recebimentos = recebimentosAll.filter((r) => r.user_id === user.id);
+      const avarias = avariasAll.filter((a: any) => a.created_by === user.name);
+      const recebimentos = recebimentosAll.filter(
+        (r: any) => r.user_id === user.id,
+      );
 
       // -------------------- LOGS DE VALIDADE --------------------
       const logsVencimentos = logs.filter(
-        (log) =>
+        (log: any) =>
           log.user_id === user.id &&
           ["Cadastrar", "Editar", "Excluir"].includes(log.action) &&
           log.description.toLowerCase().includes("vencimento"),
@@ -232,7 +234,7 @@ export default function ChecklistSemana() {
 
       const statusConferencia: Record<string, boolean> = {};
       dias.forEach((dia) => {
-        const count = conferidos.filter((c) =>
+        const count = conferidos.filter((c: any) =>
           c.created_date?.startsWith(dia),
         ).length;
 
@@ -255,7 +257,7 @@ export default function ChecklistSemana() {
       const statusNegativos: Record<string, boolean> = {};
       dias.forEach((dia) => {
         const countNegativos = conferidos.filter(
-          (c) => c.created_date?.startsWith(dia) && c.quantity_system < 0,
+          (c: any) => c.created_date?.startsWith(dia) && c.quantity_system < 0,
         ).length;
         statusNegativos[dia] = countNegativos >= 5;
       });
@@ -279,7 +281,7 @@ export default function ChecklistSemana() {
         },
         {
           nome: "Negativos",
-          registros: conferidos.filter((c) => c.quantity_system < 0),
+          registros: conferidos.filter((c: any) => c.quantity_system < 0),
           status: statusNegativos,
         },
       ];
