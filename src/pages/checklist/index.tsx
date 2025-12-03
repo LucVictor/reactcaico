@@ -20,6 +20,8 @@ import dayjs from "dayjs";
 import api from "../../api";
 import { useAuthStore } from "../authStore";
 
+// -------------------- TIPOS --------------------
+
 interface Log {
   id: number;
   action: string;
@@ -76,8 +78,11 @@ interface ChecklistItem {
   status: Record<string, boolean>;
 }
 
+// -------------------- COMPONENTE --------------------
+
 export default function ChecklistSemana() {
   const user = useAuthStore((state) => state.user);
+
   const [semanaSelecionada, setSemanaSelecionada] = useState("");
   const [diasSemana, setDiasSemana] = useState<string[]>([]);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
@@ -90,52 +95,60 @@ export default function ChecklistSemana() {
     useState<ChecklistItem | null>(null);
   const [diaSelecionado, setDiaSelecionado] = useState("");
 
-  // Metas por dia (para tooltip)
+  // Metas por dia
   const [metaPorDia, setMetaPorDia] = useState<Record<string, number>>({});
   const [conferidosPorDia, setConferidosPorDia] = useState<
     Record<string, number>
   >({});
 
+  // -------------------- FUNÇÕES --------------------
+
   const gerarDiasSemana = (semana: string): string[] => {
-    const inicio = dayjs(semana).startOf("week").add(1, "day");
+    const inicio = dayjs(semana); // já é a segunda-feira correta
     return Array.from({ length: 6 }, (_, i) =>
       inicio.add(i, "day").format("YYYY-MM-DD"),
     );
   };
 
-  const carregarDados = async (): Promise<void> => {
+  const carregarDados = async () => {
     if (!user || !semanaSelecionada) return;
-    setLoading(true);
 
+    setLoading(true);
     try {
+      // -------------------- DIAS DA SEMANA --------------------
       const dias = gerarDiasSemana(semanaSelecionada);
       setDiasSemana(dias);
 
-      const inicio = dayjs(semanaSelecionada)
-        .startOf("week")
-        .add(1, "day")
-        .format("YYYY-MM-DD");
-      const fim = dayjs(semanaSelecionada)
-        .endOf("week")
-        .subtract(1, "day")
-        .format("YYYY-MM-DD");
+      const inicio = dayjs(semanaSelecionada).format("YYYY-MM-DD");
 
-      // 🟢 Buscar meta mensal
+      const fim = dayjs(semanaSelecionada).add(5, "day").format("YYYY-MM-DD");
+
+      // -------------------- META MENSAL --------------------
       const mesSelecionado = dayjs(semanaSelecionada).format("YYYY-MM");
-      const metaRes = await api.get(`/target/conference/${mesSelecionado}`);
-      const metaMensal = metaRes.data?.[0]?.quantity ?? 400;
 
-      // Buscar dados principais
+      // API retorna metas de TODOS os usuários neste mês
+      const metaRes = await api.get(`/target/conference/${mesSelecionado}`);
+      console.log("Resposta da API de metas:", metaRes.data);
+
+      // pegar a meta do usuário logado
+      const metas = metaRes.data || [];
+      const metaDoUsuario = metas.find((m: any) => m.user_id === user.id);
+      console.log("Meta do usuário:", metaDoUsuario);
+
+      // quantidade = meta mensal
+      const metaMensal = metaDoUsuario ? metaDoUsuario.quantity : 0;
+      console.log("Meta mensal do usuário:", metaMensal);
+      // -------------------- BUSCAR DADOS --------------------
       const [conferidosRes, logsRes, avariasRes, recebimentosRes] =
         await Promise.all([
-          api.get<ProdutoConferidoProps[]>("/conference/between", {
+          api.get("/conference/between", {
             params: { date1: inicio, date2: fim, user: user.id },
           }),
-          api.get<Log[]>("/logs/"),
-          api.get<ProdutoAvariaProps[]>("/damaged/between", {
+          api.get("/logs/"),
+          api.get("/damaged/between", {
             params: { date1: inicio, date2: fim },
           }),
-          api.get<Receipt[]>("/receipt/"),
+          api.get("/receipt/"),
         ]);
 
       const conferidos = conferidosRes.data || [];
@@ -146,6 +159,7 @@ export default function ChecklistSemana() {
       const avarias = avariasAll.filter((a) => a.created_by === user.name);
       const recebimentos = recebimentosAll.filter((r) => r.user_id === user.id);
 
+      // -------------------- LOGS DE VALIDADE --------------------
       const logsVencimentos = logs.filter(
         (log) =>
           log.user_id === user.id &&
@@ -153,7 +167,7 @@ export default function ChecklistSemana() {
           log.description.toLowerCase().includes("vencimento"),
       );
 
-      // 🧮 Buscar conferências do mês
+      // -------------------- CONFERIDOS DO MÊS (META) --------------------
       const primeiroDiaMes = dayjs(semanaSelecionada)
         .startOf("month")
         .format("YYYY-MM-DD");
@@ -164,6 +178,7 @@ export default function ChecklistSemana() {
       const mesConferidosRes = await api.get(`/conference/between`, {
         params: { date1: primeiroDiaMes, date2: ultimoDiaMes, user: user.id },
       });
+
       const conferidosMes = mesConferidosRes.data || [];
 
       const confPorDia: Record<string, number> = {};
@@ -171,25 +186,28 @@ export default function ChecklistSemana() {
         const dia = p.created_date.split("T")[0];
         confPorDia[dia] = (confPorDia[dia] || 0) + 1;
       });
+
       setConferidosPorDia(confPorDia);
 
-      // 🗓️ Calcular meta diária (dias úteis)
+      // -------------------- META DIÁRIA --------------------
       const [ano, mes] = mesSelecionado.split("-").map(Number);
       const diasNoMes = new Date(ano, mes, 0).getDate();
 
       const diasUteis = Array.from({ length: diasNoMes }, (_, i) => {
-        const data = new Date(ano, mes - 1, i + 1);
-        const diaSemana = data.getDay();
-        return diaSemana !== 0 && diaSemana !== 6 ? data : null;
+        const d = new Date(ano, mes - 1, i + 1);
+        const s = d.getDay();
+        return s !== 0 && s !== 6 ? d : null;
       }).filter(Boolean) as Date[];
 
       let restante = metaMensal;
       let diasRestantes = diasUteis.length;
+
       const metaPorDiaTemp: Record<string, number> = {};
 
       for (let i = 1; i <= diasNoMes; i++) {
         const data = new Date(ano, mes - 1, i);
-        const formato = data.toISOString().split("T")[0];
+        const formato = dayjs(data).format("YYYY-MM-DD");
+
         const diaSemana = data.getDay();
         const fimDeSemana = diaSemana === 0 || diaSemana === 6;
 
@@ -197,10 +215,11 @@ export default function ChecklistSemana() {
           diasRestantes > 0 && !fimDeSemana
             ? Math.round(restante / diasRestantes)
             : 0;
-        const quantidade = confPorDia[formato] || 0;
+
+        const feitos = confPorDia[formato] || 0;
 
         if (!fimDeSemana) {
-          restante -= quantidade;
+          restante -= feitos;
           diasRestantes--;
         }
 
@@ -209,27 +228,22 @@ export default function ChecklistSemana() {
 
       setMetaPorDia(metaPorDiaTemp);
 
-      // ✅ Status da conferência (com meta diária)
+      // -------------------- STATUS --------------------
+
       const statusConferencia: Record<string, boolean> = {};
       dias.forEach((dia) => {
-        const count = conferidos.filter(
-          (c) => Boolean(c.created_date) && c.created_date.startsWith(dia),
+        const count = conferidos.filter((c) =>
+          c.created_date?.startsWith(dia),
         ).length;
-        const metaDia = metaPorDiaTemp[dia] ?? 30;
-        statusConferencia[dia] = count >= metaDia;
+
+        const meta = metaPorDiaTemp[dia] ?? 0;
+        statusConferencia[dia] = count >= meta;
       });
 
-      // 🔹 Demais status
-      const gerarStatus = (
-        dados: any[],
-        campoData: string,
-      ): Record<string, boolean> => {
+      const gerarStatus = (dados: any[], campo: string) => {
         const status: Record<string, boolean> = {};
         dias.forEach((dia) => {
-          const tem = dados.some(
-            (d) => Boolean(d?.[campoData]) && d[campoData].startsWith(dia),
-          );
-          status[dia] = tem;
+          status[dia] = dados.some((d) => d[campo]?.startsWith(dia));
         });
         return status;
       };
@@ -241,10 +255,7 @@ export default function ChecklistSemana() {
       const statusNegativos: Record<string, boolean> = {};
       dias.forEach((dia) => {
         const countNegativos = conferidos.filter(
-          (c) =>
-            Boolean(c.created_date) &&
-            c.created_date.startsWith(dia) &&
-            c.quantity_system < 0,
+          (c) => c.created_date?.startsWith(dia) && c.quantity_system < 0,
         ).length;
         statusNegativos[dia] = countNegativos >= 5;
       });
@@ -279,36 +290,41 @@ export default function ChecklistSemana() {
     }
   };
 
+  // Atualizar ao selecionar semana
   useEffect(() => {
     if (semanaSelecionada && user) carregarDados();
   }, [semanaSelecionada, user]);
 
-  const abrirModal = (tarefa: ChecklistItem, dia: string): void => {
+  // -------------------- MODAL --------------------
+
+  const abrirModal = (tarefa: ChecklistItem, dia: string) => {
     setTarefaSelecionada(tarefa);
     setDiaSelecionado(dia);
     setOpenModal(true);
   };
 
   const registrosDoDia = (t: ChecklistItem, dia: string) => {
-    if (!t) return [];
     const campo = t.nome === "Validades" ? "time_stamp" : "created_date";
-    return t.registros.filter(
-      (r: any) => Boolean(r[campo]) && r[campo].startsWith(dia),
-    );
+    return t.registros.filter((r) => r[campo]?.startsWith(dia));
   };
 
-  const handlePrint = (): void => {
+  // -------------------- IMPRESSÃO --------------------
+
+  const handlePrint = () => {
     setModoImpressao(true);
     setTimeout(() => {
       window.print();
       setModoImpressao(false);
-    }, 100);
+    }, 150);
   };
+
+  // -------------------- JSX --------------------
 
   return (
     <div
       className={`m-5 space-y-6 rounded-2xl bg-gray-800 p-6 opacity-95 ${modoImpressao ? "bg-white" : "print:p-0"}`}
     >
+      {/* CABEÇALHO */}
       {!modoImpressao && (
         <div className="flex flex-col items-center justify-between print:hidden">
           <h1 className="w-full text-center text-2xl font-bold text-white">
@@ -322,6 +338,7 @@ export default function ChecklistSemana() {
         </div>
       )}
 
+      {/* SELECT DA SEMANA */}
       {!modoImpressao && (
         <div className="flex justify-center print:hidden">
           <Select
@@ -330,10 +347,13 @@ export default function ChecklistSemana() {
           >
             <option value="">Selecione a semana</option>
             {[...Array(6)].map((_, i) => {
-              const data = dayjs().subtract(i, "week").startOf("week");
+              const data = dayjs()
+                .subtract(i, "week")
+                .startOf("week")
+                .add(1, "day");
               return (
-                <option key={i} value={data.toISOString()}>
-                  Semana de {data.add(1, "day").format("DD/MM/YYYY")}
+                <option key={i} value={data.format("YYYY-MM-DD")}>
+                  Semana de {data.format("DD/MM/YYYY")}
                 </option>
               );
             })}
@@ -341,12 +361,14 @@ export default function ChecklistSemana() {
         </div>
       )}
 
+      {/* LOADING */}
       {loading && (
         <div className="flex justify-center p-4">
           <Spinner size="lg" />
         </div>
       )}
 
+      {/* TABELA PRINCIPAL */}
       {!loading && semanaSelecionada && checklist.length > 0 && (
         <div className="overflow-x-auto rounded-xl shadow-md dark:bg-gray-800">
           <Table hoverable striped>
@@ -367,6 +389,7 @@ export default function ChecklistSemana() {
                   <TableCell className="text-center align-middle font-semibold">
                     {tarefa.nome}
                   </TableCell>
+
                   {diasSemana.map((dia) => {
                     const status = tarefa.status[dia];
                     const icon = status ? "✅" : "❌";
@@ -374,10 +397,9 @@ export default function ChecklistSemana() {
                       ? "text-green-600 hover:bg-green-200"
                       : "text-red-500 hover:bg-red-200";
 
-                    const meta = metaPorDia[dia] ?? 30;
+                    const meta = metaPorDia[dia] ?? 0;
                     const feitos = conferidosPorDia[dia] ?? 0;
 
-                    // Tooltip apenas para "Conferência"
                     const conteudoTooltip =
                       tarefa.nome === "Conferência"
                         ? `Conferidos: ${feitos} / Meta: ${meta}`
@@ -396,11 +418,7 @@ export default function ChecklistSemana() {
                       <TableCell key={dia} className="text-center align-middle">
                         <div className="flex items-center justify-center">
                           {tarefa.nome === "Conferência" ? (
-                            <Tooltip
-                              className="text-center"
-                              content={conteudoTooltip}
-                              placement="top"
-                            >
+                            <Tooltip content={conteudoTooltip} placement="top">
                               {botao}
                             </Tooltip>
                           ) : (
@@ -417,6 +435,7 @@ export default function ChecklistSemana() {
         </div>
       )}
 
+      {/* MODAL DE DETALHES */}
       <Modal show={openModal} size="4xl" onClose={() => setOpenModal(false)}>
         <ModalHeader>
           {tarefaSelecionada?.nome} —{" "}
@@ -455,6 +474,7 @@ export default function ChecklistSemana() {
                       </TableBody>
                     </Table>
                   );
+
                 case "Validades":
                   return (
                     <Table>
@@ -488,6 +508,7 @@ export default function ChecklistSemana() {
                       </TableBody>
                     </Table>
                   );
+
                 case "Avarias":
                   return (
                     <Table>
@@ -509,13 +530,14 @@ export default function ChecklistSemana() {
                       </TableBody>
                     </Table>
                   );
+
                 case "Negativos":
                   return (
                     <Table>
                       <TableHead>
                         <TableHeadCell>Código</TableHeadCell>
                         <TableHeadCell>Produto</TableHeadCell>
-                        <TableHeadCell>Quantity System</TableHeadCell>
+                        <TableHeadCell>Quantidade Sistema</TableHeadCell>
                       </TableHead>
                       <TableBody>
                         {regs.map((r: ProdutoConferidoProps) => (
@@ -528,6 +550,7 @@ export default function ChecklistSemana() {
                       </TableBody>
                     </Table>
                   );
+
                 default:
                   return (
                     <Table>

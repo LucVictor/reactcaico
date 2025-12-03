@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import isoWeek from "dayjs/plugin/isoWeek";
+import utc from "dayjs/plugin/utc";
 import {
   Table,
   TableHead,
@@ -80,6 +82,9 @@ interface ChecklistItem {
   status: Record<string, boolean>;
 }
 
+dayjs.extend(isoWeek);
+dayjs.extend(utc);
+
 export default function AdminChecklist() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<number | "">("");
@@ -106,12 +111,11 @@ export default function AdminChecklist() {
   }, []);
 
   const gerarDiasSemana = (semana: string): string[] => {
-    const inicio = dayjs(semana).startOf("week").add(1, "day");
+    const inicio = dayjs(semana).startOf("isoWeek"); // segunda
     return Array.from({ length: 6 }, (_, i) =>
       inicio.add(i, "day").format("YYYY-MM-DD"),
     );
   };
-
   const carregarChecklist = async () => {
     if (!selectedUser || !selectedWeek) return;
     setLoading(true);
@@ -121,18 +125,19 @@ export default function AdminChecklist() {
       setDiasSemana(dias);
 
       const inicio = dayjs(selectedWeek)
-        .startOf("week")
-        .add(1, "day")
+        .startOf("isoWeek")
         .format("YYYY-MM-DD");
       const fim = dayjs(selectedWeek)
-        .endOf("week")
-        .subtract(1, "day")
+        .startOf("isoWeek")
+        .add(5, "day")
         .format("YYYY-MM-DD");
 
       // meta mensal
       const mesSelecionado = dayjs(selectedWeek).format("YYYY-MM");
       const metaRes = await api.get(`/target/conference/${mesSelecionado}`);
+      console.log("Resposta da meta:", metaRes.data);
       const metaMensal = metaRes.data?.[0]?.quantity ?? 400;
+      console.log("Meta mensal:", metaMensal);
 
       // buscar dados principais
       const [conferidosRes, logsRes, avariasRes, recebimentosRes] =
@@ -209,7 +214,7 @@ export default function AdminChecklist() {
 
       for (let i = 1; i <= diasNoMes; i++) {
         const data = new Date(ano, mes - 1, i);
-        const formato = data.toISOString().split("T")[0];
+        const formato = dayjs(data).format("YYYY-MM-DD");
         const diaSemana = data.getDay();
         const fimDeSemana = diaSemana === 0 || diaSemana === 6;
 
@@ -414,10 +419,10 @@ export default function AdminChecklist() {
           >
             <option value="">Selecione a semana</option>
             {[...Array(6)].map((_, i) => {
-              const data = dayjs().subtract(i, "week").startOf("week");
+              const data = dayjs().subtract(i, "week").startOf("isoWeek"); // segunda
               return (
-                <option key={i} value={data.toISOString()}>
-                  Semana de {data.add(1, "day").format("DD/MM/YYYY")}
+                <option key={i} value={data.format("YYYY-MM-DD")}>
+                  Semana de {data.format("DD/MM/YYYY")}
                 </option>
               );
             })}
