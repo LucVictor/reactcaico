@@ -1,6 +1,7 @@
 import React, { ReactNode, useCallback, useEffect, useState } from "react";
 import { RelatorioAvarias } from "./relatorio";
 import { useLocalDeEstoque } from "../localEstoque";
+const API_URL = import.meta.env.VITE_API_URL;
 import {
   Table,
   TableBody,
@@ -64,6 +65,13 @@ function TableComponent() {
   const [isLoading, setIsLoading] = useState<boolean>();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // --- estados e função para fotos (adicionados) ---
+  const [openPhotosModal, setOpenPhotosModal] = useState(false);
+  const [photos, setPhotos] = useState<
+    { id: number; filename: string; url?: string; created_at?: string }[]
+  >([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
 
   async function buscarTiposEOrigem() {
     try {
@@ -147,6 +155,23 @@ function TableComponent() {
     startIndex + itemsPerPage,
   );
 
+  // --- nova função para buscar fotos e abrir modal ---
+  const buscarFotos = async (damagedId: number) => {
+    setPhotosLoading(true);
+    try {
+      const resp = await api.get(`/damaged/photo/${damagedId}`);
+      const data = resp.data;
+      setPhotos(data.photos || []);
+      setOpenPhotosModal(true);
+    } catch (err) {
+      console.error("Erro ao buscar fotos:", err);
+      setPhotos([]);
+      setOpenPhotosModal(true); // abre modal mesmo se não houver fotos
+    } finally {
+      setPhotosLoading(false);
+    }
+  };
+
   return (
     <>
       {isLoading ? (
@@ -180,13 +205,13 @@ function TableComponent() {
 
           {/* Tabela */}
           {/* Tabela */}
-          <div className="w-full max-w-6xl overflow-auto rounded border-gray-700">
+          <div className="w-full max-w-7xl overflow-auto rounded border-gray-700">
             {produtos.length > 0 ? (
               <Table className="min-w-full text-center">
                 <TableHead>
                   <TableRow>
                     <TableHeadCell>Data</TableHeadCell>
-                    <TableHeadCell>Código</TableHeadCell>
+                    <TableHeadCell className="">Código</TableHeadCell>
                     <TableHeadCell>Produto</TableHeadCell>
                     <TableHeadCell>Quantidade</TableHeadCell>
                     <TableHeadCell>Custo</TableHeadCell>
@@ -207,7 +232,9 @@ function TableComponent() {
                         {formatarData(produto.damaged_date)}
                       </TableCell>
                       <TableCell>{produto.product_code}</TableCell>
-                      <TableCell>{produto.product_name}</TableCell>
+                      <TableCell className="max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                        {produto.product_name}
+                      </TableCell>
                       <TableCell>{produto.quantity}</TableCell>
                       <TableCell>{formatarMoeda(produto.cost_total)}</TableCell>
                       <TableCell>
@@ -217,11 +244,19 @@ function TableComponent() {
                         {origem.find((e) => e.id === produto.origin)?.name ||
                           "-"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="flex gap-1">
                         <BotaoExcluir
                           produto={produto}
                           onAtualizar={buscarAvarias}
                         />
+                        <Button
+                          size="xs"
+                          outline
+                          color="blue"
+                          onClick={() => buscarFotos(produto.id)}
+                        >
+                          Fotos
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -258,6 +293,38 @@ function TableComponent() {
               Próxima
             </Button>
           </div>
+
+          {/* Modal de Fotos (adicionado) */}
+          <Modal
+            show={openPhotosModal}
+            onClose={() => setOpenPhotosModal(false)}
+          >
+            <ModalHeader>Fotos da Avaria</ModalHeader>
+            <ModalBody>
+              {photosLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Spinner size="lg" />
+                </div>
+              ) : photos.length > 0 ? (
+                <div className="grid grid-cols-3 gap-4">
+                  {photos.map((photo) => (
+                    <div key={photo.id} className="relative">
+                      <img
+                        src={`${API_URL}${photo.url}`}
+                        alt={photo.filename}
+                        className="h-40 w-full rounded object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center">Nenhuma foto disponível.</p>
+              )}
+            </ModalBody>
+            <ModalFooter>
+              <Button onClick={() => setOpenPhotosModal(false)}>Fechar</Button>
+            </ModalFooter>
+          </Modal>
         </div>
       )}
     </>
