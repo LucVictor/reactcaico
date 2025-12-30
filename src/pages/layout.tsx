@@ -1,6 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
 import caicoLogo from "../static/logo.png";
-import santahat from "../static/santa-hat.png";
 import { useAuthStore } from "./authStore";
 import { useLocalDeEstoque } from "./localEstoque";
 import Mailbox from "./Mailbox";
