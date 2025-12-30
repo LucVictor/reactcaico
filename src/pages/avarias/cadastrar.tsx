@@ -78,7 +78,7 @@ export function CadastrarAvaria() {
         setNome(data.name);
       } catch (error) {
         console.error(error);
-        setNome(""); // limpa se não encontrar
+        setNome("");
       }
     };
     if (codigo) {
@@ -86,7 +86,6 @@ export function CadastrarAvaria() {
     }
   }, [codigo]);
 
-  // cria previews quando selectedFiles muda
   useEffect(() => {
     // revoke antigos
     previews.forEach((url) => URL.revokeObjectURL(url));
@@ -144,20 +143,20 @@ export function CadastrarAvaria() {
       const created = createRes.data;
       console.log("Produto cadastrado: ", created);
 
-      // extrai id de forma robusta
-      const damagedId =
-        created?.id ?? created?.ID ?? created?.pk ?? created?.PK ?? null;
-
-      if (!damagedId) {
-        setIsLoading(false);
-        alert(
-          "Resposta do servidor não contém 'id'. Atualize o backend para retornar o id.",
-        );
-        return;
-      }
-
       // 2) se tiver fotos, envia para /damaged/{id}/photos
       if (selectedFiles && selectedFiles.length > 0) {
+        // extrai id de forma robusta
+        const damagedId =
+          created?.id ?? created?.ID ?? created?.pk ?? created?.PK ?? null;
+
+        if (!damagedId) {
+          setIsLoading(false);
+          alert(
+            "Resposta do servidor não contém 'id'. Atualize o backend para retornar o id.",
+          );
+          return;
+        }
+
         const form = new FormData();
         // ajuste o nome 'files' para 'photos' se seu backend espera 'photos'
         selectedFiles.forEach((file) => form.append("files", file));

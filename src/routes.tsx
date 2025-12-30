@@ -21,6 +21,7 @@ import CreateTargetConference from "./pages/admin/target";
 import ReceiptPage from "./pages/recebimento";
 import ChecklistSemana from "./pages/checklist";
 import ChecklistAdmin from "./pages/admin/checklist";
+import Auditoria from "./pages/auditoria";
 export interface AppRoute {
   path: string;
   element: JSX.Element;
@@ -95,6 +96,11 @@ export const routes: AppRoute[] = [
   {
     path: "/checklist",
     element: <Layout pagina={<ChecklistSemana />} />,
+    protected: true,
+  },
+  {
+    path: "/auditoria",
+    element: <Layout pagina={<Auditoria />} />,
     protected: true,
   },
 

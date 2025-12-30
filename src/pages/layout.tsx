@@ -100,11 +100,9 @@ export default function Layout({ pagina }: paginaProps) {
     <div className="dark relative min-h-screen flex-col">
       <WarningBar />
       <div className="background-animado"></div>
-      {snowEnabled && <div className="snow"></div>}
-
       <div className="top-bar relative z-20 flex h-16 items-center justify-between p-2">
         {/* LOGO */}
-        <div className={`christmas-logo ${logoGlowEnabled ? "logo-glow" : ""}`}>
+        <div>
           <img src={caicoLogo} width={60} />
         </div>
 
@@ -115,31 +113,34 @@ export default function Layout({ pagina }: paginaProps) {
               onClick={() => navigate("/vencimentos")}
               color="alternative"
             >
-              🎄 Vencimentos
+              Vencimentos
             </Button>
             <Button onClick={() => navigate("/avarias")} color="alternative">
-              ❄️ Avarias
+              Avarias
             </Button>
             <Button
               onClick={() => navigate("/conferencias")}
               color="alternative"
             >
-              ⛄ Conferências
+              Conferências
             </Button>
             <Button
               onClick={() => navigate("/recebimento")}
               color="alternative"
             >
-              🎁 Recebimentos
+              Recebimentos
             </Button>
             <Button onClick={() => navigate("/metas")} color="alternative">
-              ⭐ Metas
+              Metas
             </Button>
             <Button onClick={() => navigate("/pontos")} color="alternative">
-              🔔 Pontos
+              Pontos
             </Button>
             <Button onClick={() => navigate("/checklist")} color="alternative">
-              🕯️ Checklist
+              Checklist
+            </Button>
+            <Button onClick={() => navigate("/auditoria")} color="alternative">
+              Auditoria
             </Button>
           </ButtonGroup>
 
@@ -159,11 +160,6 @@ export default function Layout({ pagina }: paginaProps) {
                   }
                   className="relative z-10 ring-2 ring-red-500"
                   rounded
-                />
-                <img
-                  src={santahat}
-                  alt="Chapéu de Natal"
-                  className="absolute -top-3 -right-1 z-20 w-6 rotate-12"
                 />
               </div>
             }

@@ -52,11 +52,10 @@ export default function Login() {
 
   return (
     <div className="dark min-h-screen flex-col">
-      <div className="snow z-0"></div>
       <div className="background-animado"></div>
       <div className="dark flex h-100 min-h-screen items-center justify-center align-middle">
         <div className="flex flex-col gap-1 rounded-2xl border border-solid border-gray-700 bg-gray-700 p-5 text-center align-middle text-white opacity-90">
-          <div className="christmas-logo">
+          <div>
             <img src={caicoLogo} className="mx-auto" />
           </div>
 
