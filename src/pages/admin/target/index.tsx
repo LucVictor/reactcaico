@@ -10,7 +10,8 @@ import {
   Progress,
   Modal,
 } from "flowbite-react";
-import api, { API_URL } from "../../../api";
+import { API_URL } from "../../../api";
+import api from "../../../api";
 import { useAuthStore } from "../../authStore";
 import avatarFallback from "../../../static/user.png";
 
@@ -37,6 +38,21 @@ interface Conferencia {
   created_date: string;
 }
 
+function getProfilePhotoUrl(profile_photo: string | null): string | undefined {
+  if (!profile_photo) return undefined;
+  // Se já vier como URL completa, retorna direto
+  if (
+    profile_photo.startsWith("http://") ||
+    profile_photo.startsWith("https://")
+  ) {
+    return profile_photo;
+  }
+  // Remove barras duplicadas na junção
+  const base = API_URL.replace(/\/+$/, "");
+  const path = profile_photo.replace(/^\/+/, "");
+  return `${base}/${path}`;
+}
+
 export default function CreateTargetConference() {
   const user = useAuthStore((state) => state.user);
 
@@ -50,8 +66,8 @@ export default function CreateTargetConference() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [applyToAll, setApplyToAll] = useState(false);
-  const [openModal, setOpenModal] = useState(false); // modal visibilidade
-  const [filterMonth, setFilterMonth] = useState(dayjs().format("YYYY-MM")); // filtro mês
+  const [openModal, setOpenModal] = useState(false);
+  const [filterMonth, setFilterMonth] = useState(dayjs().format("YYYY-MM"));
 
   // FETCH USERS
   useEffect(() => {
@@ -290,11 +306,7 @@ export default function CreateTargetConference() {
             >
               <div className="mb-4 flex items-center gap-4">
                 <Avatar
-                  img={
-                    u.profile_photo
-                      ? `${API_URL}/${u.profile_photo}`
-                      : avatarFallback
-                  }
+                  img={getProfilePhotoUrl(u.profile_photo) ?? avatarFallback}
                   rounded
                   size="md"
                   className="ring-2 ring-indigo-200"

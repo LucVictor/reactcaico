@@ -49,9 +49,6 @@ export default function Layout({ pagina }: paginaProps) {
     navigate("/login");
   };
 
-  const [snowEnabled, setSnowEnabled] = useState(true);
-  const [logoGlowEnabled, setLogoGlowEnabled] = useState(true);
-
   // Carrega locais
   useEffect(() => {
     async function fetchLocais() {
@@ -214,19 +211,6 @@ export default function Layout({ pagina }: paginaProps) {
                 </DropdownItem>
               </>
             )}
-
-            <DropdownDivider />
-
-            <DropdownItem
-              onClick={() => {
-                setSnowEnabled((prev) => !prev);
-                setLogoGlowEnabled((prev) => !prev);
-              }}
-            >
-              {snowEnabled && logoGlowEnabled
-                ? "Desligar efeitos natalinos 🎄"
-                : "Ligar efeitos natalinos ✨"}
-            </DropdownItem>
 
             <DropdownDivider />
 

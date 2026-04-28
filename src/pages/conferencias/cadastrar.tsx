@@ -32,6 +32,17 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
   const [linhas, setLinhas] = useState<LinhaConferencia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const normalizarKg = (valor: string): number => {
+    if (!valor) return 0;
+
+    const limpo = valor
+      .replace(/[^\d.,-]/g, "")
+      .replace(/\.(?=.*\.)/g, "") // remove pontos extras (milhar)
+      .replace(",", ".");
+
+    return Number(limpo);
+  };
+
   const adicionarLinha = () => {
     setLinhas((prev) => [
       ...prev,
@@ -153,35 +164,35 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
                       buscarProduto(linha.id, codigo);
                     }}
                   />
-                </TableCell>
-                <TableCell className="w-9x1 text-center">
-                  {linha.name || "—"}
-                </TableCell>
-                <TableCell className="w-32">
-                  <TextInput
-                    type="number"
-                    step="0.001"
-                    onChange={(e) =>
-                      atualizarLinha(
-                        linha.id,
-                        "quantity_real",
-                        Number(e.target.value),
-                      )
-                    }
-                  />
-                </TableCell>
-                <TableCell className="w-32">
-                  <TextInput
-                    type="number"
-                    step="0.001"
-                    onChange={(e) =>
-                      atualizarLinha(
-                        linha.id,
-                        "quantity_system",
-                        Number(e.target.value),
-                      )
-                    }
-                  />
+                  <TableCell className="w-32">
+                    <TextInput
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Ex: 1.200,60"
+                      onChange={(e) =>
+                        atualizarLinha(
+                          linha.id,
+                          "quantity_real",
+                          normalizarKg(e.target.value),
+                        )
+                      }
+                    />
+                  </TableCell>
+
+                  <TableCell className="w-32">
+                    <TextInput
+                      type="text"
+                      inputMode="decimal"
+                      placeholder="Ex: 1.200,60"
+                      onChange={(e) =>
+                        atualizarLinha(
+                          linha.id,
+                          "quantity_system",
+                          normalizarKg(e.target.value),
+                        )
+                      }
+                    />
+                  </TableCell>
                 </TableCell>
                 <TableCell>
                   <Button
