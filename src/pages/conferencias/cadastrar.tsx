@@ -32,17 +32,6 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
   const [linhas, setLinhas] = useState<LinhaConferencia[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const normalizarKg = (valor: string): number => {
-    if (!valor) return 0;
-
-    const limpo = valor
-      .replace(/[^\d.,-]/g, "")
-      .replace(/\.(?=.*\.)/g, "") // remove pontos extras (milhar)
-      .replace(",", ".");
-
-    return Number(limpo);
-  };
-
   const adicionarLinha = () => {
     setLinhas((prev) => [
       ...prev,
@@ -164,35 +153,93 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
                       buscarProduto(linha.id, codigo);
                     }}
                   />
-                  <TableCell className="w-32">
-                    <TextInput
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="Ex: 1.200,60"
-                      onChange={(e) =>
-                        atualizarLinha(
-                          linha.id,
-                          "quantity_real",
-                          normalizarKg(e.target.value),
-                        )
-                      }
-                    />
-                  </TableCell>
+                </TableCell>
+                <TableCell className="w-9x1 text-center">
+                  {linha.name || "—"}
+                </TableCell>
+                <TableCell className="w-32">
+                  <TextInput
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Ex: 1200,00"
+                    onChange={(e) => {
+                      const valor = e.target.value;
 
-                  <TableCell className="w-32">
-                    <TextInput
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="Ex: 1.200,60"
-                      onChange={(e) =>
-                        atualizarLinha(
-                          linha.id,
-                          "quantity_system",
-                          normalizarKg(e.target.value),
-                        )
+                      // ❌ bloqueia ponto
+                      if (valor.includes(".")) {
+                        alert("Valor inválido! Use vírgula, não ponto.");
+                        atualizarLinha(linha.id, "quantity_real", 0);
+                        e.target.value = "";
+                        return;
                       }
-                    />
-                  </TableCell>
+
+                      // ✅ permite só números + vírgula (2 casas)
+                      const valido = /^[0-9]*,?[0-9]{0,2}$/.test(valor);
+                      if (!valido) return;
+
+                      const numero = valor
+                        ? Number(valor.replace(",", "."))
+                        : 0;
+
+                      atualizarLinha(linha.id, "quantity_real", numero);
+                    }}
+                    onBlur={(e) => {
+                      let valor = e.target.value;
+
+                      if (!valor) return;
+
+                      if (!valor.includes(",")) {
+                        valor += ",00";
+                      } else {
+                        const [int, dec = ""] = valor.split(",");
+                        valor = `${int},${dec.padEnd(2, "0")}`;
+                      }
+
+                      e.target.value = valor;
+                    }}
+                  />
+                </TableCell>
+                <TableCell className="w-32">
+                  <TextInput
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Ex: 1200,00"
+                    onChange={(e) => {
+                      const valor = e.target.value;
+
+                      // ❌ bloqueia ponto
+                      if (valor.includes(".")) {
+                        alert("Valor inválido! Use vírgula, não ponto.");
+                        atualizarLinha(linha.id, "quantity_system", 0);
+                        e.target.value = "";
+                        return;
+                      }
+
+                      // ✅ permite só números + vírgula (2 casas)
+                      const valido = /^[0-9]*,?[0-9]{0,2}$/.test(valor);
+                      if (!valido) return;
+
+                      const numero = valor
+                        ? Number(valor.replace(",", "."))
+                        : 0;
+
+                      atualizarLinha(linha.id, "quantity_system", numero);
+                    }}
+                    onBlur={(e) => {
+                      let valor = e.target.value;
+
+                      if (!valor) return;
+
+                      if (!valor.includes(",")) {
+                        valor += ",00";
+                      } else {
+                        const [int, dec = ""] = valor.split(",");
+                        valor = `${int},${dec.padEnd(2, "0")}`;
+                      }
+
+                      e.target.value = valor;
+                    }}
+                  />
                 </TableCell>
                 <TableCell>
                   <Button
