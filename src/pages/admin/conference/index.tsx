@@ -166,30 +166,49 @@ export default function AdminConferenciaAnalytics() {
 
     const meta =
       metas.find((m) => m.user_name === selectedUser.name)?.quantity ?? 500;
+
+    const diasNoMes = dayjs(`${selectedMonth}-01`).daysInMonth();
+
     let restante = meta;
 
-    return diasUteisNoMes().map((dia) => {
+    const resultado = [];
+
+    for (let i = 1; i <= diasNoMes; i++) {
+      const dia = dayjs(`${selectedMonth}-01`).date(i);
+
+      const fimDeSemana = dia.day() === 0 || dia.day() === 6;
+
       const feitoHoje = conferencias.filter(
         (c) =>
           c.created_by === selectedUser.name &&
           dayjs(c.created_date).isSame(dia, "day"),
       ).length;
 
-      const diasRestantes = diasUteisNoMes().filter((d) =>
-        d.isSameOrAfter(dia),
-      ).length;
+      // SEMPRE desconta do restante
+      restante = Math.max(0, restante - feitoHoje);
+
+      // Dias úteis restantes a partir do dia atual
+      const diasUteisRestantes = Array.from(
+        { length: diasNoMes - i },
+        (_, idx) => {
+          const d = dayjs(`${selectedMonth}-01`).date(i + idx + 1);
+          return d.day() !== 0 && d.day() !== 6;
+        },
+      ).filter(Boolean).length;
+
       const mediaDiariaRestante =
-        diasRestantes > 0 ? restante / diasRestantes : restante;
+        diasUteisRestantes > 0 ? restante / diasUteisRestantes : restante;
 
-      restante -= feitoHoje;
-
-      return {
+      resultado.push({
         dia: dia.format("DD/MM"),
         feito: feitoHoje,
         mediaDiariaRestante,
         restante,
-      };
-    });
+        fimDeSemana,
+      });
+    }
+
+    return resultado;
   }, [selectedUser, conferencias, metas, selectedMonth]);
 
   return (

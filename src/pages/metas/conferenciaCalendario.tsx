@@ -219,8 +219,11 @@ export function ConferenciaCalendario() {
 
       const atingiuMeta = quantidade >= metaDia && !fimDeSemana;
 
+      // Sempre desconta da meta mensal
+      restante = Math.max(0, restante - quantidade);
+
+      // Apenas dias úteis reduzem os dias restantes
       if (!fimDeSemana) {
-        restante -= quantidade;
         diasRestantes--;
       }
 
@@ -245,7 +248,7 @@ export function ConferenciaCalendario() {
   const progressoPercentual =
     diasUteisTotais === 0
       ? 0
-      : Math.min((diasComMetaBatida / diasUteisTotais) * 100, 100);
+      : Math.round(Math.min((diasComMetaBatida / diasUteisTotais) * 100, 100));
 
   const corProgresso =
     progressoPercentual < 50
