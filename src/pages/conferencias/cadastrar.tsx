@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, ChangeEvent, FocusEvent } from "react";
 import {
   Button,
   Label,
@@ -46,6 +46,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
 
     scrollToBottom();
   };
+
   const removerLinha = (id: number) => {
     setLinhas((prev) => prev.filter((linha) => linha.id !== id));
   };
@@ -104,11 +105,65 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
       setIsLoading(false);
     }
   };
+
   const scrollToBottom = () => {
     setTimeout(() => {
       endRef.current?.scrollIntoView({ behavior: "auto" });
-    }, 50); // pequeno delay para a linha renderizar
+    }, 50);
   };
+
+  // Lida com a digitação das quantidades
+  const handleQuantityChange = (
+    e: ChangeEvent<HTMLInputElement>,
+    id: number,
+    campo: "quantity_real" | "quantity_system",
+  ) => {
+    let valor = e.target.value;
+
+    // Remove qualquer ponto digitado ou colado automaticamente
+    valor = valor.replace(/\./g, "");
+
+    // Permite números e vírgula, com até 3 casas decimais (ex: 1000,500)
+    const valido = /^[0-9]*,?[0-9]{0,3}$/.test(valor);
+    if (!valido) {
+      // Se a regex falhar (ex: digitou letra ou mais de 3 casas), limpa a última entrada
+      e.target.value = valor.slice(0, -1);
+      return;
+    }
+
+    // Força o input a exibir a string formatada sem pontos
+    e.target.value = valor;
+
+    // Salva o valor numérico no estado
+    const numero = valor ? Number(valor.replace(",", ".")) : 0;
+    atualizarLinha(id, campo, numero);
+  };
+
+  // Formata a quantidade ao sair do campo (onBlur)
+  const handleQuantityBlur = (e: FocusEvent<HTMLInputElement>) => {
+    let valor = e.target.value;
+    if (!valor) return;
+
+    if (!valor.includes(",")) {
+      valor += ",000";
+    } else {
+      const [int, dec = ""] = valor.split(",");
+      // Preenche com zeros até atingir 3 casas decimais
+      valor = `${int},${dec.padEnd(3, "0")}`;
+    }
+
+    e.target.value = valor;
+  };
+
+  // Somatórios para feedback
+  const totalReal = linhas.reduce(
+    (acc, linha) => acc + (linha.quantity_real || 0),
+    0,
+  );
+  const totalSistema = linhas.reduce(
+    (acc, linha) => acc + (linha.quantity_system || 0),
+    0,
+  );
 
   return (
     <div className="w-full p-4">
@@ -161,84 +216,22 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
                   <TextInput
                     type="text"
                     inputMode="numeric"
-                    placeholder="Ex: 1200,00"
-                    onChange={(e) => {
-                      const valor = e.target.value;
-
-                      // ❌ bloqueia ponto
-                      if (valor.includes(".")) {
-                        alert("Valor inválido! Use vírgula, não ponto.");
-                        atualizarLinha(linha.id, "quantity_real", 0);
-                        e.target.value = "";
-                        return;
-                      }
-
-                      // ✅ permite só números + vírgula (2 casas)
-                      const valido = /^[0-9]*,?[0-9]{0,2}$/.test(valor);
-                      if (!valido) return;
-
-                      const numero = valor
-                        ? Number(valor.replace(",", "."))
-                        : 0;
-
-                      atualizarLinha(linha.id, "quantity_real", numero);
-                    }}
-                    onBlur={(e) => {
-                      let valor = e.target.value;
-
-                      if (!valor) return;
-
-                      if (!valor.includes(",")) {
-                        valor += ",00";
-                      } else {
-                        const [int, dec = ""] = valor.split(",");
-                        valor = `${int},${dec.padEnd(2, "0")}`;
-                      }
-
-                      e.target.value = valor;
-                    }}
+                    placeholder="Ex: 1000,500"
+                    onChange={(e) =>
+                      handleQuantityChange(e, linha.id, "quantity_real")
+                    }
+                    onBlur={handleQuantityBlur}
                   />
                 </TableCell>
                 <TableCell className="w-32">
                   <TextInput
                     type="text"
                     inputMode="numeric"
-                    placeholder="Ex: 1200,00"
-                    onChange={(e) => {
-                      const valor = e.target.value;
-
-                      // ❌ bloqueia ponto
-                      if (valor.includes(".")) {
-                        alert("Valor inválido! Use vírgula, não ponto.");
-                        atualizarLinha(linha.id, "quantity_system", 0);
-                        e.target.value = "";
-                        return;
-                      }
-
-                      // ✅ permite só números + vírgula (2 casas)
-                      const valido = /^[0-9]*,?[0-9]{0,2}$/.test(valor);
-                      if (!valido) return;
-
-                      const numero = valor
-                        ? Number(valor.replace(",", "."))
-                        : 0;
-
-                      atualizarLinha(linha.id, "quantity_system", numero);
-                    }}
-                    onBlur={(e) => {
-                      let valor = e.target.value;
-
-                      if (!valor) return;
-
-                      if (!valor.includes(",")) {
-                        valor += ",00";
-                      } else {
-                        const [int, dec = ""] = valor.split(",");
-                        valor = `${int},${dec.padEnd(2, "0")}`;
-                      }
-
-                      e.target.value = valor;
-                    }}
+                    placeholder="Ex: 1000,500"
+                    onChange={(e) =>
+                      handleQuantityChange(e, linha.id, "quantity_system")
+                    }
+                    onBlur={handleQuantityBlur}
                   />
                 </TableCell>
                 <TableCell>
@@ -253,6 +246,26 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
                 </TableCell>
               </TableRow>
             ))}
+
+            {/* Linha de Somatório (só aparece se houver produtos) */}
+            {linhas.length > 0 && (
+              <TableRow className="bg-gray-50 font-semibold dark:bg-gray-800">
+                <TableCell
+                  colSpan={2}
+                  className="text-right text-sm text-gray-900 uppercase dark:text-white"
+                >
+                  Totais da Conferência:
+                </TableCell>
+                <TableCell className="text-center text-blue-600 dark:text-blue-400">
+                  {totalReal.toFixed(3).replace(".", ",")}
+                </TableCell>
+                <TableCell className="text-center text-blue-600 dark:text-blue-400">
+                  {totalSistema.toFixed(3).replace(".", ",")}
+                </TableCell>
+                <TableCell></TableCell>
+              </TableRow>
+            )}
+
             <div ref={endRef}></div>
           </TableBody>
         </Table>
