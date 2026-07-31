@@ -259,13 +259,16 @@ export default function AdminChecklist() {
       const statusAvarias = gerarStatus(avarias, "created_date");
       const statusRecebimentos = gerarStatus(recebimentos, "created_date");
 
+      const isRegistroNegativo = (registro: any) =>
+        Number(registro?.quantity_system ?? 0) < 0;
+
       const statusNegativos: Record<string, boolean> = {};
       dias.forEach((dia) => {
         const countNegativos = conferidos.filter(
           (c: any) =>
             Boolean(c.created_date) &&
             c.created_date.startsWith(dia) &&
-            c.quantity_system < 0,
+            isRegistroNegativo(c),
         ).length;
         statusNegativos[dia] = countNegativos >= 5;
       });
@@ -293,7 +296,7 @@ export default function AdminChecklist() {
         },
         {
           nome: "Negativos",
-          registros: conferidos.filter((c: any) => c.quantity_system < 0),
+          registros: conferidos.filter(isRegistroNegativo),
           status: statusNegativos,
         },
       ]);

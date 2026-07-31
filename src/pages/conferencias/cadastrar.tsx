@@ -51,10 +51,10 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
     setLinhas((prev) => prev.filter((linha) => linha.id !== id));
   };
 
-  const atualizarLinha = (
+  const atualizarLinha = <K extends keyof LinhaConferencia>(
     id: number,
-    campo: keyof LinhaConferencia,
-    valor: any,
+    campo: K,
+    valor: LinhaConferencia[K],
   ) => {
     setLinhas((prev) =>
       prev.map((linha) =>
@@ -123,19 +123,17 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
     // Remove qualquer ponto digitado ou colado automaticamente
     valor = valor.replace(/\./g, "");
 
-    // Permite números e vírgula, com até 3 casas decimais (ex: 1000,500)
-    const valido = /^[0-9]*,?[0-9]{0,3}$/.test(valor);
+    // Permite números, vírgula e sinal negativo, com até 3 casas decimais
+    const valido = /^-?[0-9]*,?[0-9]{0,3}$/.test(valor);
     if (!valido) {
-      // Se a regex falhar (ex: digitou letra ou mais de 3 casas), limpa a última entrada
       e.target.value = valor.slice(0, -1);
       return;
     }
 
-    // Força o input a exibir a string formatada sem pontos
     e.target.value = valor;
 
-    // Salva o valor numérico no estado
-    const numero = valor ? Number(valor.replace(",", ".")) : 0;
+    const numero =
+      valor === "" || valor === "-" ? 0 : Number(valor.replace(",", "."));
     atualizarLinha(id, campo, numero);
   };
 
