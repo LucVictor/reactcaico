@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Table,
   TableHead,
@@ -10,8 +10,12 @@ import {
   Label,
   Spinner,
 } from "flowbite-react";
+
 import api from "../../api";
+
 import { useAuthStore } from "../authStore";
+
+const META_SEMANAL = 150;
 
 export interface ProdutoConferidoProps {
   id: number;
@@ -41,11 +45,23 @@ function formatarDataLocal(ano: number, mes: number, dia: number) {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
-/** Faz parsing seguro de 'YYYY-MM-DD' ou 'YYYY-MM-DDTHH:MM:SS' e retorna [ano, mes, dia] */
 function parseDateString(dateStr: string) {
-  const s = dateStr.slice(0, 10); // 'YYYY-MM-DD'
+  const s = dateStr.slice(0, 10);
   const parts = s.split("-").map(Number);
   return { ano: parts[0], mes: parts[1], dia: parts[2] };
+}
+
+function adicionarDias(data: Date, dias: number) {
+  const novaData = new Date(data);
+  novaData.setDate(novaData.getDate() + dias);
+  return novaData;
+}
+
+function formatarPeriodo(data: Date) {
+  return data.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
 }
 
 export function ConferenciaCalendario() {
@@ -59,11 +75,9 @@ export function ConferenciaCalendario() {
     return `${agora.getFullYear()}-${mes}`;
   });
 
-  const [meta, setMeta] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const user = useAuthStore((state) => state.user);
 
-  // Meses para dropdown
   const mesesOptions = Array.from({ length: 12 }).map((_, i) => {
     const data = new Date();
     data.setMonth(data.getMonth() - i);
@@ -78,19 +92,7 @@ export function ConferenciaCalendario() {
     return { valor, label };
   });
 
-  // ---- Buscar METAS ----
-  async function buscarMetaConferencia() {
-    try {
-      const response = await api.get(`/target/conference/${mesSelecionado}`);
-      setMeta(response.data?.[0]?.quantity ?? null);
-    } catch (err) {
-      console.error("Erro ao buscar meta:", err);
-      setMeta(null);
-    }
-  }
-
-  // ---- Buscar conferências ----
-  async function buscarProdutosConferidos() {
+  const buscarProdutosConferidos = useCallback(async () => {
     try {
       const [ano, mes] = mesSelecionado.split("-").map(Number);
       const primeiroDia = formatarDataLocal(ano, mes, 1);
@@ -109,10 +111,9 @@ export function ConferenciaCalendario() {
       console.error("Erro ao buscar produtos conferidos:", err);
       setProdutosConferidos([]);
     }
-  }
+  }, [mesSelecionado, user?.id]);
 
-  // ---- Buscar Work Items ----
-  async function buscarWorkItems() {
+  const buscarWorkItems = useCallback(async () => {
     try {
       const [ano, mes] = mesSelecionado.split("-").map(Number);
       const primeiroDia = formatarDataLocal(ano, mes, 1);
@@ -131,25 +132,26 @@ export function ConferenciaCalendario() {
       console.error("Erro ao buscar Work Items:", err);
       setWorkItems([]);
     }
-  }
+  }, [mesSelecionado]);
 
-  // ---- Atualiza quando muda o mês ----
   useEffect(() => {
     let mounted = true;
+
     const carregar = async () => {
       setLoading(true);
-      await buscarProdutosConferidos();
-      await buscarWorkItems();
-      await buscarMetaConferencia();
-      if (mounted) setLoading(false);
+      await Promise.all([buscarProdutosConferidos(), buscarWorkItems()]);
+      if (mounted) {
+        setLoading(false);
+      }
     };
+
     carregar();
+
     return () => {
       mounted = false;
     };
-  }, [mesSelecionado, user?.id]);
+  }, [buscarProdutosConferidos, buscarWorkItems]);
 
-  // ---- FILTRAGEM (parsing explícito para evitar problemas de timezone) ----
   const produtosFiltrados = useMemo(() => {
     const [anoSel, mesSel] = mesSelecionado.split("-").map(Number);
     return produtosConferidos.filter((p) => {
@@ -168,87 +170,93 @@ export function ConferenciaCalendario() {
     });
   }, [workItems, mesSelecionado]);
 
-  // ---- CONTAGEM POR DIA ----
-  const produtosPorDia: Record<string, number> = {};
+  const produtosPorDia = useMemo(() => {
+    const porDia: Record<string, number> = {};
 
-  // Usamos slice(0,10) para garantir 'YYYY-MM-DD'
-  produtosFiltrados.forEach((p) => {
-    const dia = p.date_.slice(0, 10);
-    produtosPorDia[dia] = (produtosPorDia[dia] || 0) + 1;
-  });
+    produtosFiltrados.forEach((p) => {
+      const dia = p.date_.slice(0, 10);
+      porDia[dia] = (porDia[dia] || 0) + 1;
+    });
 
-  workItemsFiltrados.forEach((w) => {
-    const dia = w.date_.slice(0, 10);
-    produtosPorDia[dia] = (produtosPorDia[dia] || 0) + 1;
-  });
+    workItemsFiltrados.forEach((w) => {
+      const dia = w.date_.slice(0, 10);
+      porDia[dia] = (porDia[dia] || 0) + 1;
+    });
 
-  // ---- Cálculo de metas ----
-  const META_MENSAL = meta ?? 400;
+    return porDia;
+  }, [produtosFiltrados, workItemsFiltrados]);
 
-  const dadosTabela = useMemo(() => {
+  const semanasDoMes = useMemo(() => {
     const [ano, mes] = mesSelecionado.split("-").map(Number);
-    const diasNoMes = new Date(ano, mes, 0).getDate();
+    const ultimoDia = new Date(ano, mes, 0);
+    const primeiroDia = new Date(ano, mes - 1, 1);
 
-    const diasUteis = Array.from({ length: diasNoMes }, (_, i) => {
-      const data = new Date(ano, mes - 1, i + 1);
-      const diaSemana = data.getDay();
-      return diaSemana !== 0 && diaSemana !== 6 ? data : null;
-    }).filter(Boolean) as Date[];
+    const inicioSemana = new Date(primeiroDia);
+    const diasAteSexta = (inicioSemana.getDay() - 5 + 7) % 7;
+    inicioSemana.setDate(inicioSemana.getDate() - diasAteSexta);
 
-    let restante = META_MENSAL;
-    let diasRestantes = diasUteis.length;
-
-    const resultado: {
-      dia: number;
+    const semanas: {
+      numero: number;
+      inicio: string;
+      fim: string;
       quantidade: number;
-      metaDia: number;
+      metaSemana: number;
       atingiuMeta: boolean;
-      fimDeSemana: boolean;
     }[] = [];
 
-    for (let i = 1; i <= diasNoMes; i++) {
-      const data = new Date(ano, mes - 1, i);
-      const formato = formatarDataLocal(ano, mes, i); // 'YYYY-MM-DD'
+    let semanaAtual = new Date(inicioSemana);
+    let contador = 1;
 
-      const quantidade = produtosPorDia[formato] || 0;
-      const diaSemana = data.getDay();
-      const fimDeSemana = diaSemana === 0 || diaSemana === 6;
+    while (semanaAtual <= ultimoDia) {
+      const semanaFim = adicionarDias(semanaAtual, 6);
+      let quantidade = 0;
 
-      const metaDia =
-        diasRestantes > 0 ? Math.round(restante / diasRestantes) : 0;
+      for (
+        const data = new Date(semanaAtual);
+        data <= semanaFim;
+        data.setDate(data.getDate() + 1)
+      ) {
+        const chave = formatarDataLocal(
+          data.getFullYear(),
+          data.getMonth() + 1,
+          data.getDate(),
+        );
 
-      const atingiuMeta = quantidade >= metaDia && !fimDeSemana;
-
-      // Sempre desconta da meta mensal
-      restante = Math.max(0, restante - quantidade);
-
-      // Apenas dias úteis reduzem os dias restantes
-      if (!fimDeSemana) {
-        diasRestantes--;
+        if (data.getFullYear() === ano && data.getMonth() === mes - 1) {
+          quantidade += produtosPorDia[chave] || 0;
+        }
       }
 
-      resultado.push({
-        dia: i,
+      semanas.push({
+        numero: contador,
+        inicio: formatarPeriodo(semanaAtual),
+        fim: formatarPeriodo(semanaFim),
         quantidade,
-        metaDia: metaDia,
-        atingiuMeta,
-        fimDeSemana,
+        metaSemana: META_SEMANAL,
+        atingiuMeta: quantidade >= META_SEMANAL,
       });
+
+      semanaAtual = adicionarDias(semanaAtual, 7);
+      contador += 1;
     }
 
-    return resultado;
-  }, [produtosPorDia, mesSelecionado, META_MENSAL]);
+    return semanas;
+  }, [mesSelecionado, produtosPorDia]);
 
-  // ---- Estatísticas gerais ----
-  const diasUteisTotais = dadosTabela.filter((d) => !d.fimDeSemana).length;
-  const diasComMetaBatida = dadosTabela.filter(
-    (d) => d.atingiuMeta && !d.fimDeSemana,
+  const totalMensal = useMemo(() => {
+    return produtosFiltrados.length + workItemsFiltrados.length;
+  }, [produtosFiltrados, workItemsFiltrados]);
+
+  const semanasComMetaBatida = semanasDoMes.filter(
+    (semana) => semana.atingiuMeta,
   ).length;
 
   const progressoPercentual =
-    diasUteisTotais === 0
+    semanasDoMes.length === 0
       ? 0
-      : Math.round(Math.min((diasComMetaBatida / diasUteisTotais) * 100, 100));
+      : Math.round(
+          Math.min((semanasComMetaBatida / semanasDoMes.length) * 100, 100),
+        );
 
   const corProgresso =
     progressoPercentual < 50
@@ -267,10 +275,9 @@ export function ConferenciaCalendario() {
 
   return (
     <div className="m-auto w-full max-w-3xl rounded-xl bg-gray-50 p-6 shadow-md transition-colors duration-300 dark:bg-gray-800">
-      {/* Cabeçalho */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-          Conferência Mensal de Produtos
+          Conferência Semanal de Produtos
         </h2>
 
         <div className="flex flex-col items-end">
@@ -294,21 +301,16 @@ export function ConferenciaCalendario() {
         </div>
       </div>
 
-      {/* Resumo */}
       <div className="mb-6 text-center">
         <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Meta mensal: <strong>{meta ?? "—"}</strong> conferência de produtos
+          Meta mínima semanal: <strong>{META_SEMANAL}</strong> conferências
         </p>
         <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Produtos conferidos no mês:{" "}
-          {/* usar os arrays filtrados para o mês */}
-          {produtosFiltrados.length + workItemsFiltrados.length}
+          Total do mês: <strong>{totalMensal}</strong> conferências
         </p>
         <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
-          Dias úteis com meta batida:{" "}
-          <strong>
-            {diasComMetaBatida}/{diasUteisTotais}
-          </strong>
+          Semanas com meta batida: <strong>{semanasComMetaBatida}</strong>/
+          <strong>{semanasDoMes.length}</strong>
         </p>
 
         <Progress
@@ -317,51 +319,39 @@ export function ConferenciaCalendario() {
           size="lg"
           labelProgress
           labelText
-          textLabel={`${diasComMetaBatida} / ${diasUteisTotais} dias úteis`}
+          textLabel={`${semanasComMetaBatida} / ${semanasDoMes.length} semanas`}
         />
       </div>
 
-      {/* Tabela */}
       <div className="overflow-x-auto rounded-lg border border-gray-300 dark:border-gray-700">
         <Table hoverable className="text-center">
           <TableHead className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-            <TableHeadCell>Dia</TableHeadCell>
+            <TableHeadCell>Semana</TableHeadCell>
+            <TableHeadCell>Período</TableHeadCell>
             <TableHeadCell>Qtd Conferida</TableHeadCell>
-            <TableHeadCell>Meta do Dia</TableHeadCell>
+            <TableHeadCell>Meta da Semana</TableHeadCell>
             <TableHeadCell>Status</TableHeadCell>
           </TableHead>
           <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {dadosTabela.map((d) => (
+            {semanasDoMes.map((semana) => (
               <TableRow
-                key={d.dia}
-                className={`transition-colors duration-200 ${
-                  d.fimDeSemana
-                    ? "bg-gray-100 text-gray-400 dark:bg-gray-700"
-                    : "bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
-                }`}
+                key={`${semana.numero}-${semana.inicio}`}
+                className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
               >
-                <TableCell className="font-medium">{d.dia}</TableCell>
-                <TableCell>{d.quantidade}</TableCell>
-                {/* garantir que 0 apareça como 0 (não como '-') */}
+                <TableCell className="font-medium">{semana.numero}</TableCell>
                 <TableCell>
-                  {d.metaDia !== undefined ? d.metaDia : "-"}
+                  {semana.inicio} - {semana.fim}
                 </TableCell>
+                <TableCell>{semana.quantidade}</TableCell>
+                <TableCell>{semana.metaSemana}</TableCell>
                 <TableCell>
-                  {d.fimDeSemana ? (
-                    d.quantidade > 0 ? (
-                      <span className="inline-block rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-600 dark:bg-blue-700 dark:text-blue-100">
-                        ✔️ Extra
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )
-                  ) : d.atingiuMeta ? (
+                  {semana.atingiuMeta ? (
                     <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-sm font-semibold text-green-600 dark:bg-green-700 dark:text-green-100">
-                      ✔️
+                      ✔️ Meta atingida
                     </span>
                   ) : (
                     <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-sm font-semibold text-red-600 dark:bg-red-700 dark:text-red-100">
-                      ✖️
+                      ✖️ Abaixo da meta
                     </span>
                   )}
                 </TableCell>

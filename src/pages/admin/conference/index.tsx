@@ -33,6 +33,8 @@ import {
 import api, { API_URL } from "../../../api";
 import avatar from "../../../static/user.png";
 
+const META_SEMANAL = 150;
+
 dayjs.locale("pt-br");
 dayjs.extend(isBetween);
 dayjs.extend(isSameOrBefore);
@@ -105,15 +107,51 @@ export default function AdminConferenciaAnalytics() {
     loadData();
   }, [selectedMonth]);
 
-  const diasUteisNoMes = () => {
-    const diasDoMes = dayjs(`${selectedMonth}-01`).daysInMonth();
-    const diasUteis: dayjs.Dayjs[] = [];
-    for (let i = 1; i <= diasDoMes; i++) {
-      const dia = dayjs(`${selectedMonth}-01`).date(i);
-      if (dia.day() !== 0 && dia.day() !== 6) diasUteis.push(dia);
+  const semanasDoMes = useMemo(() => {
+    const mes = dayjs(`${selectedMonth}-01`);
+    const ultimoDia = mes.endOf("month");
+    const primeiroDia = mes.startOf("month");
+
+    const primeiroSexta = primeiroDia.clone();
+    const diferencaParaSexta = (primeiroSexta.day() - 5 + 7) % 7;
+    primeiroSexta.subtract(diferencaParaSexta, "day");
+
+    const semanas: {
+      numero: number;
+      inicio: dayjs.Dayjs;
+      fim: dayjs.Dayjs;
+      total: number;
+      atingiuMeta: boolean;
+    }[] = [];
+
+    let semanaAtual = primeiroSexta;
+    let numero = 1;
+
+    while (
+      semanaAtual.isBefore(ultimoDia, "day") ||
+      semanaAtual.isSame(ultimoDia, "day")
+    ) {
+      const semanaFim = semanaAtual.clone().add(6, "day");
+
+      const total = conferencias.filter((c) => {
+        const data = dayjs(c.created_date);
+        return data.isBetween(semanaAtual, semanaFim, "day", "[]");
+      }).length;
+
+      semanas.push({
+        numero,
+        inicio: semanaAtual,
+        fim: semanaFim,
+        total,
+        atingiuMeta: total >= META_SEMANAL,
+      });
+
+      semanaAtual = semanaAtual.add(7, "day");
+      numero += 1;
     }
-    return diasUteis;
-  };
+
+    return semanas;
+  }, [conferencias, selectedMonth]);
 
   const analytics = useMemo(() => {
     const mapTotal: Record<string, number> = {};
@@ -121,31 +159,38 @@ export default function AdminConferenciaAnalytics() {
       mapTotal[c.created_by] = (mapTotal[c.created_by] || 0) + 1;
     });
 
-    const diasUteis = diasUteisNoMes();
     return users.map((user) => {
       const total = mapTotal[user.name] || 0;
+      const semanasBatidas = semanasDoMes.filter((semana) => {
+        const semanaTotal = conferencias.filter((c) => {
+          const data = dayjs(c.created_date);
+          return (
+            c.created_by === user.name &&
+            data.isBetween(semana.inicio, semana.fim, "day", "[]")
+          );
+        }).length;
 
-      // Pegar meta específica do usuário para o mês
-      const meta =
+        return semanaTotal >= META_SEMANAL;
+      }).length;
+
+      const metaMensal =
         metas.find((m) => m.user_name === user.name)?.quantity ?? 500;
 
-      const mediaDiaria = diasUteis.length > 0 ? meta / diasUteis.length : meta;
-      const feitoHoje = total; // já contabiliza total do mês até agora
       const dentroMeta =
-        feitoHoje >=
-        mediaDiaria *
-          diasUteis.filter((d) => d.isBefore(dayjs(), "day")).length;
+        total >= Math.max(metaMensal, META_SEMANAL * semanasDoMes.length);
 
       return {
         username: user.name,
         name: user.name,
         avatar: user.profile_photo,
         total,
-        metaMensal: meta,
+        semanasBatidas,
+        metaMensal,
+        metaSemanal: META_SEMANAL,
         dentroMeta,
       };
     });
-  }, [users, conferencias, metas, selectedMonth]);
+  }, [users, conferencias, metas, semanasDoMes, selectedMonth]);
 
   const chartData = useMemo(
     () =>
@@ -161,55 +206,27 @@ export default function AdminConferenciaAnalytics() {
     setShowUserModal(true);
   };
 
-  const userDailyData = useMemo(() => {
+  const userWeeklyData = useMemo(() => {
     if (!selectedUser) return [];
 
-    const meta =
-      metas.find((m) => m.user_name === selectedUser.name)?.quantity ?? 500;
-
-    const diasNoMes = dayjs(`${selectedMonth}-01`).daysInMonth();
-
-    let restante = meta;
-
-    const resultado = [];
-
-    for (let i = 1; i <= diasNoMes; i++) {
-      const dia = dayjs(`${selectedMonth}-01`).date(i);
-
-      const fimDeSemana = dia.day() === 0 || dia.day() === 6;
-
-      const feitoHoje = conferencias.filter(
-        (c) =>
+    return semanasDoMes.map((semana) => {
+      const total = conferencias.filter((c) => {
+        const data = dayjs(c.created_date);
+        return (
           c.created_by === selectedUser.name &&
-          dayjs(c.created_date).isSame(dia, "day"),
-      ).length;
+          data.isBetween(semana.inicio, semana.fim, "day", "[]")
+        );
+      }).length;
 
-      // SEMPRE desconta do restante
-      restante = Math.max(0, restante - feitoHoje);
-
-      // Dias úteis restantes a partir do dia atual
-      const diasUteisRestantes = Array.from(
-        { length: diasNoMes - i },
-        (_, idx) => {
-          const d = dayjs(`${selectedMonth}-01`).date(i + idx + 1);
-          return d.day() !== 0 && d.day() !== 6;
-        },
-      ).filter(Boolean).length;
-
-      const mediaDiariaRestante =
-        diasUteisRestantes > 0 ? restante / diasUteisRestantes : restante;
-
-      resultado.push({
-        dia: dia.format("DD/MM"),
-        feito: feitoHoje,
-        mediaDiariaRestante,
-        restante,
-        fimDeSemana,
-      });
-    }
-
-    return resultado;
-  }, [selectedUser, conferencias, metas, selectedMonth]);
+      return {
+        semana: `Semana ${semana.numero}`,
+        periodo: `${semana.inicio.format("DD/MM")} - ${semana.fim.format("DD/MM")}`,
+        total,
+        meta: META_SEMANAL,
+        atingiuMeta: total >= META_SEMANAL,
+      };
+    });
+  }, [selectedUser, conferencias, semanasDoMes]);
 
   return (
     <div className="m-5 flex flex-col items-center gap-6">
@@ -264,9 +281,14 @@ export default function AdminConferenciaAnalytics() {
             <Table hoverable striped>
               <TableHead>
                 <TableHeadCell>Usuário</TableHeadCell>
-                <TableHeadCell className="text-center">Total</TableHeadCell>
                 <TableHeadCell className="text-center">
-                  Meta Mensal
+                  Total do Mês
+                </TableHeadCell>
+                <TableHeadCell className="text-center">
+                  Meta Semanal
+                </TableHeadCell>
+                <TableHeadCell className="text-center">
+                  Semanas com Meta
                 </TableHeadCell>
                 <TableHeadCell className="text-center">
                   Status da Meta
@@ -294,7 +316,10 @@ export default function AdminConferenciaAnalytics() {
                       {a.total}
                     </TableCell>
                     <TableCell className="text-center">
-                      {a.metaMensal}
+                      {a.metaSemanal}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {a.semanasBatidas}/{semanasDoMes.length}
                     </TableCell>
                     <TableCell className="text-center">
                       {a.dentroMeta ? (
@@ -316,30 +341,34 @@ export default function AdminConferenciaAnalytics() {
         onClose={() => setShowUserModal(false)}
         size="6xl"
       >
-        <ModalHeader>Detalhes de {selectedUser?.name}</ModalHeader>
+        <ModalHeader>Detalhes por semana de {selectedUser?.name}</ModalHeader>
         <ModalBody>
           <Table hoverable striped>
             <TableHead>
-              <TableHeadCell>Dia</TableHeadCell>
+              <TableHeadCell>Semana</TableHeadCell>
+              <TableHeadCell className="text-center">Período</TableHeadCell>
               <TableHeadCell className="text-center">
                 Conferências Feitas
               </TableHeadCell>
               <TableHeadCell className="text-center">
-                Média Diária Restante
+                Meta da Semana
               </TableHeadCell>
-              <TableHeadCell className="text-center">
-                Restante para Meta
-              </TableHeadCell>
+              <TableHeadCell className="text-center">Status</TableHeadCell>
             </TableHead>
             <TableBody>
-              {userDailyData.map((d, i) => (
+              {userWeeklyData.map((d, i) => (
                 <TableRow key={i}>
-                  <TableCell>{d.dia}</TableCell>
-                  <TableCell className="text-center">{d.feito}</TableCell>
+                  <TableCell>{d.semana}</TableCell>
+                  <TableCell className="text-center">{d.periodo}</TableCell>
+                  <TableCell className="text-center">{d.total}</TableCell>
+                  <TableCell className="text-center">{d.meta}</TableCell>
                   <TableCell className="text-center">
-                    {d.mediaDiariaRestante.toFixed(1)}
+                    {d.atingiuMeta ? (
+                      <Badge color="success">Meta atingida</Badge>
+                    ) : (
+                      <Badge color="failure">Abaixo da meta</Badge>
+                    )}
                   </TableCell>
-                  <TableCell className="text-center">{d.restante}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
