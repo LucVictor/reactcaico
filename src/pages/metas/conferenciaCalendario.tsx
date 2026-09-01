@@ -45,12 +45,6 @@ function formatarDataLocal(ano: number, mes: number, dia: number) {
   return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
 }
 
-function parseDateString(dateStr: string) {
-  const s = dateStr.slice(0, 10);
-  const parts = s.split("-").map(Number);
-  return { ano: parts[0], mes: parts[1], dia: parts[2] };
-}
-
 function adicionarDias(data: Date, dias: number) {
   const novaData = new Date(data);
   novaData.setDate(novaData.getDate() + dias);
@@ -92,18 +86,50 @@ export function ConferenciaCalendario() {
     return { valor, label };
   });
 
+  // Calcula, para o mês selecionado, o range de datas que cobre TODAS as
+  // semanas exibidas na tabela (inclusive dias do mês anterior/seguinte que
+  // pertencem à primeira/última semana). Isso é necessário porque uma
+  // semana pode começar em agosto e terminar em setembro, por exemplo.
+  const rangeBusca = useMemo(() => {
+    const [ano, mes] = mesSelecionado.split("-").map(Number);
+    const primeiroDiaMes = new Date(ano, mes - 1, 1);
+    const ultimoDiaMes = new Date(ano, mes, 0);
+
+    // Início da primeira semana (sexta-feira anterior ou igual ao dia 1)
+    const inicioSemana = new Date(primeiroDiaMes);
+    const diasAteSexta = (inicioSemana.getDay() - 5 + 7) % 7;
+    inicioSemana.setDate(inicioSemana.getDate() - diasAteSexta);
+
+    // Fim da última semana que contém o último dia do mês
+    const diasDesdeUltimaSexta = (ultimoDiaMes.getDay() - 5 + 7) % 7;
+    const inicioUltimaSemana = adicionarDias(
+      ultimoDiaMes,
+      -diasDesdeUltimaSexta,
+    );
+    const fimUltimaSemana = adicionarDias(inicioUltimaSemana, 6);
+
+    return {
+      inicio: formatarDataLocal(
+        inicioSemana.getFullYear(),
+        inicioSemana.getMonth() + 1,
+        inicioSemana.getDate(),
+      ),
+      fim: formatarDataLocal(
+        fimUltimaSemana.getFullYear(),
+        fimUltimaSemana.getMonth() + 1,
+        fimUltimaSemana.getDate(),
+      ),
+    };
+  }, [mesSelecionado]);
+
   const buscarProdutosConferidos = useCallback(async () => {
     try {
-      const [ano, mes] = mesSelecionado.split("-").map(Number);
-      const primeiroDia = formatarDataLocal(ano, mes, 1);
-      const ultimoDia = formatarDataLocal(
-        ano,
-        mes,
-        new Date(ano, mes, 0).getDate(),
-      );
-
       const response = await api.get("/conference/between", {
-        params: { date1: primeiroDia, date2: ultimoDia, user: user?.id },
+        params: {
+          date1: rangeBusca.inicio,
+          date2: rangeBusca.fim,
+          user: user?.id,
+        },
       });
 
       setProdutosConferidos(response.data ?? []);
@@ -111,20 +137,12 @@ export function ConferenciaCalendario() {
       console.error("Erro ao buscar produtos conferidos:", err);
       setProdutosConferidos([]);
     }
-  }, [mesSelecionado, user?.id]);
+  }, [rangeBusca, user?.id]);
 
   const buscarWorkItems = useCallback(async () => {
     try {
-      const [ano, mes] = mesSelecionado.split("-").map(Number);
-      const primeiroDia = formatarDataLocal(ano, mes, 1);
-      const ultimoDia = formatarDataLocal(
-        ano,
-        mes,
-        new Date(ano, mes, 0).getDate(),
-      );
-
       const response = await api.get("/work_conference/items/", {
-        params: { date1: primeiroDia, date2: ultimoDia },
+        params: { date1: rangeBusca.inicio, date2: rangeBusca.fim },
       });
 
       setWorkItems(response.data ?? []);
@@ -132,7 +150,7 @@ export function ConferenciaCalendario() {
       console.error("Erro ao buscar Work Items:", err);
       setWorkItems([]);
     }
-  }, [mesSelecionado]);
+  }, [rangeBusca]);
 
   useEffect(() => {
     let mounted = true;
@@ -152,39 +170,26 @@ export function ConferenciaCalendario() {
     };
   }, [buscarProdutosConferidos, buscarWorkItems]);
 
-  const produtosFiltrados = useMemo(() => {
-    const [anoSel, mesSel] = mesSelecionado.split("-").map(Number);
-    return produtosConferidos.filter((p) => {
-      if (!p?.date_) return false;
-      const { ano, mes } = parseDateString(p.date_);
-      return ano === anoSel && mes === mesSel;
-    });
-  }, [produtosConferidos, mesSelecionado]);
-
-  const workItemsFiltrados = useMemo(() => {
-    const [anoSel, mesSel] = mesSelecionado.split("-").map(Number);
-    return workItems.filter((w) => {
-      if (!w?.date_) return false;
-      const { ano, mes } = parseDateString(w.date_);
-      return ano === anoSel && mes === mesSel;
-    });
-  }, [workItems, mesSelecionado]);
-
+  // Agora não filtramos mais por mês aqui: o backend já retorna somente o
+  // range de datas que cobre exatamente as semanas exibidas (rangeBusca),
+  // então todos os itens recebidos são relevantes.
   const produtosPorDia = useMemo(() => {
     const porDia: Record<string, number> = {};
 
-    produtosFiltrados.forEach((p) => {
+    produtosConferidos.forEach((p) => {
+      if (!p?.date_) return;
       const dia = p.date_.slice(0, 10);
       porDia[dia] = (porDia[dia] || 0) + 1;
     });
 
-    workItemsFiltrados.forEach((w) => {
+    workItems.forEach((w) => {
+      if (!w?.date_) return;
       const dia = w.date_.slice(0, 10);
       porDia[dia] = (porDia[dia] || 0) + 1;
     });
 
     return porDia;
-  }, [produtosFiltrados, workItemsFiltrados]);
+  }, [produtosConferidos, workItems]);
 
   const semanasDoMes = useMemo(() => {
     const [ano, mes] = mesSelecionado.split("-").map(Number);
@@ -211,6 +216,11 @@ export function ConferenciaCalendario() {
       const semanaFim = adicionarDias(semanaAtual, 6);
       let quantidade = 0;
 
+      // Soma TODOS os dias da semana (mesmo que caiam no mês anterior ou
+      // seguinte), pois a semana é uma unidade fixa de 7 dias e não deve
+      // ser recortada pelo mês selecionado. Antes, dias fora do mês eram
+      // ignorados, fazendo a mesma semana aparecer com contagens diferentes
+      // (e incompletas) em cada mês que ela toca.
       for (
         const data = new Date(semanaAtual);
         data <= semanaFim;
@@ -222,9 +232,7 @@ export function ConferenciaCalendario() {
           data.getDate(),
         );
 
-        if (data.getFullYear() === ano && data.getMonth() === mes - 1) {
-          quantidade += produtosPorDia[chave] || 0;
-        }
+        quantidade += produtosPorDia[chave] || 0;
       }
 
       semanas.push({
@@ -244,8 +252,16 @@ export function ConferenciaCalendario() {
   }, [mesSelecionado, produtosPorDia]);
 
   const totalMensal = useMemo(() => {
-    return produtosFiltrados.length + workItemsFiltrados.length;
-  }, [produtosFiltrados, workItemsFiltrados]);
+    const [ano, mes] = mesSelecionado.split("-").map(Number);
+    let total = 0;
+    Object.entries(produtosPorDia).forEach(([chave, qtd]) => {
+      const [anoChave, mesChave] = chave.split("-").map(Number);
+      if (anoChave === ano && mesChave === mes) {
+        total += qtd;
+      }
+    });
+    return total;
+  }, [produtosPorDia, mesSelecionado]);
 
   const semanasComMetaBatida = semanasDoMes.filter(
     (semana) => semana.atingiuMeta,
