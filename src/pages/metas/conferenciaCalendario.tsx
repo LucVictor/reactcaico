@@ -173,22 +173,40 @@ export function ConferenciaCalendario() {
   // Agora não filtramos mais por mês aqui: o backend já retorna somente o
   // range de datas que cobre exatamente as semanas exibidas (rangeBusca),
   // então todos os itens recebidos são relevantes.
-  const produtosPorDia = useMemo(() => {
+  //
+  // Itens com quantity_system < 0 (estoque negativo) NÃO entram na
+  // contagem que vale para a meta de 150/semana. Eles são contabilizados
+  // à parte, em `negativosPorDia`, apenas para exibição informativa.
+  const { produtosPorDia, negativosPorDia } = useMemo(() => {
     const porDia: Record<string, number> = {};
+    const negPorDia: Record<string, number> = {};
 
-    produtosConferidos.forEach((p) => {
-      if (!p?.date_) return;
-      const dia = p.date_.slice(0, 10);
-      porDia[dia] = (porDia[dia] || 0) + 1;
-    });
+    const registrar = (
+      dataStr: string | undefined,
+      qtySystem: number | null | undefined,
+    ) => {
+      if (!dataStr) return;
+      const dia = dataStr.slice(0, 10);
 
-    workItems.forEach((w) => {
-      if (!w?.date_) return;
-      const dia = w.date_.slice(0, 10);
-      porDia[dia] = (porDia[dia] || 0) + 1;
-    });
+      const isNegativo = typeof qtySystem === "number" && qtySystem < 0;
 
-    return porDia;
+      if (isNegativo) {
+        // Não entra na meta, só é contado separadamente (informativo)
+        negPorDia[dia] = (negPorDia[dia] || 0) + 1;
+      } else {
+        porDia[dia] = (porDia[dia] || 0) + 1;
+      }
+    };
+
+    produtosConferidos.forEach(
+      (p: {
+        date_: string | undefined;
+        quantity_system: number | null | undefined;
+      }) => registrar(p?.date_, p?.quantity_system),
+    );
+    workItems.forEach((w) => registrar(w?.date_, w?.quantity_system));
+
+    return { produtosPorDia: porDia, negativosPorDia: negPorDia };
   }, [produtosConferidos, workItems]);
 
   const semanasDoMes = useMemo(() => {
@@ -205,6 +223,8 @@ export function ConferenciaCalendario() {
       inicio: string;
       fim: string;
       quantidade: number;
+      quantidadeNegativos: number;
+      faltam: number;
       metaSemana: number;
       atingiuMeta: boolean;
     }[] = [];
@@ -215,6 +235,7 @@ export function ConferenciaCalendario() {
     while (semanaAtual <= ultimoDia) {
       const semanaFim = adicionarDias(semanaAtual, 6);
       let quantidade = 0;
+      let quantidadeNegativos = 0;
 
       // Soma TODOS os dias da semana (mesmo que caiam no mês anterior ou
       // seguinte), pois a semana é uma unidade fixa de 7 dias e não deve
@@ -233,6 +254,7 @@ export function ConferenciaCalendario() {
         );
 
         quantidade += produtosPorDia[chave] || 0;
+        quantidadeNegativos += negativosPorDia[chave] || 0;
       }
 
       semanas.push({
@@ -240,6 +262,8 @@ export function ConferenciaCalendario() {
         inicio: formatarPeriodo(semanaAtual),
         fim: formatarPeriodo(semanaFim),
         quantidade,
+        quantidadeNegativos,
+        faltam: Math.max(META_SEMANAL - quantidade, 0),
         metaSemana: META_SEMANAL,
         atingiuMeta: quantidade >= META_SEMANAL,
       });
@@ -249,7 +273,7 @@ export function ConferenciaCalendario() {
     }
 
     return semanas;
-  }, [mesSelecionado, produtosPorDia]);
+  }, [mesSelecionado, produtosPorDia, negativosPorDia]);
 
   const totalMensal = useMemo(() => {
     const [ano, mes] = mesSelecionado.split("-").map(Number);
@@ -290,7 +314,7 @@ export function ConferenciaCalendario() {
   }
 
   return (
-    <div className="m-auto w-full max-w-3xl rounded-xl bg-gray-50 p-6 shadow-md transition-colors duration-300 dark:bg-gray-800">
+    <div className="m-auto w-full max-w-4xl rounded-xl bg-gray-50 p-6 shadow-md transition-colors duration-300 dark:bg-gray-800">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
           Conferência Semanal de Produtos
@@ -339,14 +363,30 @@ export function ConferenciaCalendario() {
         />
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-300 dark:border-gray-700">
-        <Table hoverable className="text-center">
+      <div className="rounded-lg border border-gray-300 dark:border-gray-700">
+        <Table hoverable className="min-w-[860px] text-center">
           <TableHead className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-            <TableHeadCell>Semana</TableHeadCell>
-            <TableHeadCell>Período</TableHeadCell>
-            <TableHeadCell>Qtd Conferida</TableHeadCell>
-            <TableHeadCell>Meta da Semana</TableHeadCell>
-            <TableHeadCell>Status</TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Semana
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Período
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Qtd Conferida
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Estoques Negativos
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Meta da Semana
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Faltam
+            </TableHeadCell>
+            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
+              Status
+            </TableHeadCell>
           </TableHead>
           <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
             {semanasDoMes.map((semana) => (
@@ -354,19 +394,43 @@ export function ConferenciaCalendario() {
                 key={`${semana.numero}-${semana.inicio}`}
                 className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
               >
-                <TableCell className="font-medium">{semana.numero}</TableCell>
-                <TableCell>
+                <TableCell className="px-3 py-3 font-medium whitespace-nowrap">
+                  {semana.numero}
+                </TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
                   {semana.inicio} - {semana.fim}
                 </TableCell>
-                <TableCell>{semana.quantidade}</TableCell>
-                <TableCell>{semana.metaSemana}</TableCell>
-                <TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
+                  {semana.quantidade}
+                </TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
+                  {semana.quantidadeNegativos > 0 ? (
+                    <span className="whitespace-nowrapdark:text-orange-100 inline-block rounded-full px-2.5 py-1 text-sm font-semibold">
+                      {semana.quantidadeNegativos}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">0</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
+                  {semana.metaSemana}
+                </TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
+                  {semana.faltam > 0 ? (
+                    <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100">
+                      {semana.faltam}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="px-3 py-3 whitespace-nowrap">
                   {semana.atingiuMeta ? (
-                    <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-sm font-semibold text-green-600 dark:bg-green-700 dark:text-green-100">
+                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-green-600 dark:bg-green-700 dark:text-green-100">
                       ✔️ Meta atingida
                     </span>
                   ) : (
-                    <span className="inline-block rounded-full bg-red-100 px-2 py-0.5 text-sm font-semibold text-red-600 dark:bg-red-700 dark:text-red-100">
+                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-red-600 dark:bg-red-700 dark:text-red-100">
                       ✖️ Abaixo da meta
                     </span>
                   )}
