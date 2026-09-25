@@ -25,7 +25,7 @@ dayjs.locale("pt-br");
 export interface ProdutoConferidoProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real?: number | null;
   quantity_system?: number | null;
   diference?: number | null;

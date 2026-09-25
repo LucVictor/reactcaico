@@ -25,7 +25,7 @@ import { useNavigate } from "react-router-dom";
 dayjs.locale("pt-br");
 
 export interface ProdutoVencimento {
-  product_code: number;
+  product_code: string;
   product_name: string;
   quantity: number;
   shelflife_date: string;

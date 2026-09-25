@@ -18,7 +18,7 @@ dayjs.locale("pt-br");
 interface ProdutoConferidoProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   created_date: string;
 }
 

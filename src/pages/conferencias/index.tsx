@@ -19,7 +19,7 @@ import dayjs from "dayjs";
 export interface ProdutoConferidoProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real: number;
   quantity_system: number;
   diference: number;

@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 export interface ProdutoConferidoProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real: number;
   quantity_system: number;
   diference: number;
@@ -42,7 +42,8 @@ export default function Auditoria() {
       {/* área de busca */}
       <div className="flex w-full max-w-lg gap-3">
         <input
-          type="number"
+          type="text"
+          inputMode="numeric"
           placeholder="Código do produto"
           value={codigo}
           onChange={(e) => setCodigo(e.target.value)}

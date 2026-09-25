@@ -4,14 +4,14 @@ import api from "../../api";
 import { useLocalDeEstoque } from "../localEstoque";
 
 interface ProdutoVencimento {
-  product_code: number;
+  product_code: string;
   quantity: number;
   shelflife_date: string; // envia como string no formato yyyy-mm-dd
   local: number;
 }
 
 export function CadastrarVencimento({ onSucesso }: { onSucesso: () => void }) {
-  const [codigo, setCodigo] = useState<number>(0);
+  const [codigo, setCodigo] = useState<string>("");
   const [nome, setNome] = useState<string>("");
   const [quantidade, setQuantidade] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>();
@@ -23,9 +23,9 @@ export function CadastrarVencimento({ onSucesso }: { onSucesso: () => void }) {
   useEffect(() => {
     const buscarProduto = async () => {
       try {
-        const res = await api.get(`/product/${codigo}`);
+        const res = await api.get(`/v2/products/${codigo}`);
         const data = await res.data;
-        setNome(data.name);
+        setNome(data.product.name);
       } catch (error) {
         console.error(error);
         setNome(""); // limpa se não encontrar
@@ -81,10 +81,10 @@ export function CadastrarVencimento({ onSucesso }: { onSucesso: () => void }) {
             <Label htmlFor="cproduto">Código</Label>
             <TextInput
               id="cproduto"
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="Digite o código do produto"
-              min="1"
-              onChange={(e) => setCodigo(Number(e.target.value))}
+              onChange={(e) => setCodigo(e.target.value)}
               required
             />
           </div>

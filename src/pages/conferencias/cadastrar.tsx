@@ -16,7 +16,7 @@ import { useLocalDeEstoque } from "../localEstoque";
 
 interface LinhaConferencia {
   id: number;
-  product_code: number;
+  product_code: string;
   name: string;
   quantity_real: number;
   quantity_system: number;
@@ -37,7 +37,7 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
       ...prev,
       {
         id: Date.now(),
-        product_code: 0,
+        product_code: "",
         name: "",
         quantity_real: 0,
         quantity_system: 0,
@@ -64,12 +64,12 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
   };
 
   // Buscar nome do produto automaticamente
-  const buscarProduto = async (id: number, codigo: number) => {
+  const buscarProduto = async (id: number, codigo: string) => {
     if (!codigo) return;
     try {
-      const res = await api.get(`/product/${codigo}`);
+      const res = await api.get(`/v2/products/${codigo}`);
       const data = res.data;
-      atualizarLinha(id, "name", data.name);
+      atualizarLinha(id, "name", data.product.name);
     } catch {
       atualizarLinha(id, "name", "");
     }
@@ -198,12 +198,12 @@ export function CadastrarConferencia({ onSucesso }: { onSucesso: () => void }) {
               <TableRow key={linha.id}>
                 <TableCell className="w-36">
                   <TextInput
-                    type="number"
-                    value={linha.product_code || ""}
+                    type="text"
+                    inputMode="numeric"
+                    value={linha.product_code}
                     onChange={(e) => {
-                      const codigo = Number(e.target.value);
-                      atualizarLinha(linha.id, "product_code", codigo);
-                      buscarProduto(linha.id, codigo);
+                      atualizarLinha(linha.id, "product_code", e.target.value);
+                      buscarProduto(linha.id, e.target.value);
                     }}
                   />
                 </TableCell>

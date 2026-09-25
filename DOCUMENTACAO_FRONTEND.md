@@ -455,8 +455,8 @@ A semana é calculada de **Segunda a Sábado** (6 dias):
 1. **Criação de Tarefa**:
    * O operador informa a quantidade de itens que deseja auditar. O backend seleciona produtos e gera a lista.
 2. **Execução / Edição da Tarefa**:
-   * Modal exibe cada produto com inputs para: **Quantidade Sistema**, **Quantidade Físico** e Checkbox **Inativo (Sem Estoque)**.
-   * Se `active === false` (checkbox marcado), sinaliza que o produto não possui estoque físico na loja.
+   * Modal exibe cada produto com inputs para: **Quantidade Sistema** e **Quantidade Físico**.
+   * Todo item deve receber as quantidades normalmente. Produtos sem estoque físico na loja devem ser enviados com `quantity_real: 0` (não existe mais marcação de produto inativo via `active: false`).
 3. **Bloqueio de Edição**:
    * Se a tarefa estiver com `completed === true`, todos os campos ficam desabilitados (apenas leitura).
 4. **Impressão da Folha de Tarefa**:

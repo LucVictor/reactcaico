@@ -20,7 +20,7 @@ const META_SEMANAL = 150;
 export interface ProdutoConferidoProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real: number;
   quantity_system: number;
   diference: number;
@@ -33,7 +33,7 @@ export interface ProdutoConferidoProps {
 export interface WorkItemProps {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real: number | null;
   quantity_system: number | null;
   created_date: string;

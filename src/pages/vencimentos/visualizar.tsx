@@ -21,7 +21,7 @@ dayjs.locale("pt-br");
 
 interface ProdutoVencimento {
   id: number;
-  product_code: number;
+  product_code: string;
   product_name: string;
   quantity: number;
   shelflife_date: string;

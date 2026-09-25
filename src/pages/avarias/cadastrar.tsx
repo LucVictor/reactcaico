@@ -15,7 +15,7 @@ import api from "../../api";
 import { useLocalDeEstoque } from "../localEstoque";
 
 interface CadastrarProdutoAvariaProps {
-  product_code: number;
+  product_code: string;
   quantity: number;
   shelflife_date: string;
   damaged_date: string;
@@ -35,7 +35,7 @@ interface OrigemDeAvaria {
 }
 
 export function CadastrarAvaria() {
-  const [codigo, setCodigo] = useState<number>(0);
+  const [codigo, setCodigo] = useState<string>("");
   const [nome, setNome] = useState<string>("");
   const [quantidade, setQuantidade] = useState<number>(0);
   const [dataAvaria, setdataAvaria] = useState<string>(
@@ -73,9 +73,9 @@ export function CadastrarAvaria() {
   useEffect(() => {
     const buscarProduto = async () => {
       try {
-        const res = await api.get(`/product/${codigo}`);
+        const res = await api.get(`/v2/products/${codigo}`);
         const data = await res.data;
-        setNome(data.name);
+        setNome(data.product.name);
       } catch (error) {
         console.error(error);
         setNome("");
@@ -191,7 +191,7 @@ export function CadastrarAvaria() {
       setIsLoading(false);
       alert("Cadastro realizado com sucesso!");
       // limpa formulário
-      setCodigo(0);
+      setCodigo("");
       setNome("");
       setQuantidade(0);
       setTipo(0);
@@ -221,10 +221,10 @@ export function CadastrarAvaria() {
               <Label htmlFor="cproduto">Código</Label>
               <TextInput
                 id="cproduto"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 placeholder="Digite o código do produto"
-                min="1"
-                onChange={(e) => setCodigo(Number(e.target.value))}
+                onChange={(e) => setCodigo(e.target.value)}
                 required
               />
             </div>

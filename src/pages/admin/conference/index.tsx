@@ -46,7 +46,7 @@ dayjs.extend(isSameOrAfter);
 interface Conferencia {
   id: number;
   product_name: string;
-  product_code: number;
+  product_code: string;
   quantity_real: number;
   quantity_system: number;
   created_date: string;

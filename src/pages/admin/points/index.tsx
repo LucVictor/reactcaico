@@ -22,7 +22,7 @@ interface Point {
   value: number;
   time_stamp?: string;
   name: string;
-  product_code: number;
+  product_code: string;
   product_name?: string;
   user_name?: string;
 }
@@ -35,7 +35,7 @@ interface User {
 interface FraudAlert {
   user_id: number;
   user_name: string;
-  product_code: number;
+  product_code: string;
   product_name: string;
   count: number;
   first_time: string;
@@ -97,13 +97,13 @@ const PointsPagina: React.FC = () => {
       const uniqueCodes = [
         ...new Set(fetchedPoints.map((p) => p.product_code)),
       ];
-      const productNamesMap: Record<number, string> = {};
+      const productNamesMap: Record<string, string> = {};
 
       await Promise.all(
         uniqueCodes.map(async (code) => {
           try {
-            const res = await api.get(`/product/${code}`);
-            productNamesMap[code] = res.data.name || "Sem nome";
+            const res = await api.get(`/v2/products/${code}`);
+            productNamesMap[code] = res.data.product.name || "Sem nome";
           } catch {
             productNamesMap[code] = "Produto não encontrado";
           }

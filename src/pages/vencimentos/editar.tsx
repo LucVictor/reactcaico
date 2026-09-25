@@ -63,7 +63,7 @@ export function EditarVencimento({
                 <Label htmlFor="cproduto">Código</Label>
                 <TextInput
                   id="cproduto"
-                  type="number"
+                  type="text"
                   value={produto.product_code}
                   readOnly
                   required
@@ -126,7 +126,7 @@ interface OrigemDeAvaria {
 }
 
 function CadastrarAvaria({ produtoSelecionado }: EditarVencimentoProps) {
-  const [codigo] = useState<number>(produtoSelecionado.product_code);
+  const [codigo] = useState<string>(produtoSelecionado.product_code);
   const [nome] = useState<string>(produtoSelecionado.product_name);
   const [quantidade] = useState<number>(produtoSelecionado.quantity);
   const [dataAvaria, setdataAvaria] = useState<string>(

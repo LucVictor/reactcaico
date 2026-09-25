@@ -50,7 +50,7 @@ interface PontosProps {
   value: number;
   time_stamp: string;
   name: string;
-  product_code: number;
+  product_code: string;
 }
 
 interface User {

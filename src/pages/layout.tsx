@@ -135,6 +135,9 @@ export default function Layout({ pagina }: paginaProps) {
             <Button onClick={() => navigate("/checklist")} color="alternative">
               Checklist
             </Button>
+            <Button onClick={() => navigate("/tasks")} color="alternative">
+              Tarefas
+            </Button>
             <Button onClick={() => navigate("/auditoria")} color="alternative">
               Auditoria
             </Button>
@@ -208,6 +211,9 @@ export default function Layout({ pagina }: paginaProps) {
                 </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/metas")}>
                   Adm: Conferência Meta
+                </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/tasks")}>
+                  Adm: Tarefas
                 </DropdownItem>
               </>
             )}
