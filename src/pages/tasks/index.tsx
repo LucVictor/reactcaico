@@ -37,6 +37,7 @@ interface TaskItemProps {
   id: number;
   task_id: number;
   product_external_id: number;
+  code: string | null;
   product_name: string;
   quantity_system: number | null;
   quantity_real: number | null;
@@ -383,7 +384,7 @@ export default function Tasks() {
                     key={item.id}
                     className="bg-white dark:bg-gray-800"
                   >
-                    <TableCell>{item.product_external_id}</TableCell>
+                    <TableCell>{item.code || "—"}</TableCell>
                     <TableCell>{item.product_name}</TableCell>
                     <TableCell>
                       {item.stock_quantity !== null &&
