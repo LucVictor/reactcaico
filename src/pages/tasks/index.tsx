@@ -22,6 +22,7 @@ import {
 import api from "../../api";
 import { useAuthStore } from "../authStore";
 import { useLocalDeEstoque } from "../localEstoque";
+import TaskExportButtons from "../../components/TaskExportButtons";
 
 interface TaskProps {
   id: number;
@@ -200,8 +201,7 @@ export default function Tasks() {
     setSaveMessage(null);
 
     const missing = items.filter(
-      (item) =>
-        item.quantity_system === null || item.quantity_real === null,
+      (item) => item.quantity_system === null || item.quantity_real === null,
     );
 
     if (missing.length > 0) {
@@ -242,7 +242,9 @@ export default function Tasks() {
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Tarefas de Conferência</h1>
+          <h1 className="text-2xl font-bold text-white">
+            Tarefas de Conferência
+          </h1>
           <p className="text-sm text-gray-300">
             Gere uma lista de produtos e envie a conferência realizada.
           </p>
@@ -317,8 +319,7 @@ export default function Tasks() {
           <div className="flex flex-col gap-4">
             <p className="text-sm text-gray-500">
               Serão sorteados <b>{newQuantity || 0}</b> produtos pendentes de
-              conferência na filial{" "}
-              <b>{branchCode || "—"}</b>.
+              conferência na filial <b>{branchCode || "—"}</b>.
             </p>
             <Label htmlFor="quantidade-nova">Quantidade de itens</Label>
             <TextInput
@@ -352,11 +353,7 @@ export default function Tasks() {
       </Modal>
 
       {/* Modal: Itens da task */}
-      <Modal
-        show={selectedTask !== null}
-        onClose={handleCloseTask}
-        size="5xl"
-      >
+      <Modal show={selectedTask !== null} onClose={handleCloseTask} size="5xl">
         <ModalHeader>
           Itens da Task #{selectedTask?.id}{" "}
           {selectedTask?.completed ? "(Concluída)" : "(Em andamento)"}
@@ -367,84 +364,106 @@ export default function Tasks() {
               <Spinner aria-label="Carregando itens..." size="xl" />
             </div>
           ) : (
-            <Table hoverable className="text-center">
-              <TableHead>
-                <TableRow>
-                  <TableHeadCell>Código</TableHeadCell>
-                  <TableHeadCell>Produto</TableHeadCell>
-                  <TableHeadCell>Qtd Estoque</TableHeadCell>
-                  <TableHeadCell>Qtd Sistema</TableHeadCell>
-                  <TableHeadCell>Qtd Real</TableHeadCell>
-                  <TableHeadCell>Diferença</TableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {items.map((item) => (
-                  <TableRow
-                    key={item.id}
-                    className="bg-white dark:bg-gray-800"
-                  >
-                    <TableCell>{item.code || "—"}</TableCell>
-                    <TableCell>{item.product_name}</TableCell>
-                    <TableCell>
-                      {item.stock_quantity !== null &&
-                      item.stock_quantity !== undefined
-                        ? (Number(item.stock_quantity) || 0).toLocaleString(
-                            "pt-BR",
-                          )
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {selectedTask?.completed ? (
-                        item.quantity_system ?? "—"
-                      ) : (
-                        <TextInput
-                          type="number"
-                          value={item.quantity_system ?? ""}
-                          onChange={(e) =>
-                            handleChangeItem(
-                              item.id,
-                              "quantity_system",
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {selectedTask?.completed ? (
-                        item.quantity_real ?? "—"
-                      ) : (
-                        <TextInput
-                          type="number"
-                          value={item.quantity_real ?? ""}
-                          onChange={(e) =>
-                            handleChangeItem(
-                              item.id,
-                              "quantity_real",
-                              Number(e.target.value),
-                            )
-                          }
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {item.difference !== null && item.difference !== undefined
-                        ? (Number(item.difference) || 0).toLocaleString("pt-BR")
-                        : "—"}
-                    </TableCell>
+            <>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-500 dark:text-gray-300">
+                  {items.length} item(ns) • Exporte em Excel, PDF ou imprima em
+                  folha A4.
+                </p>
+                {selectedTask && (
+                  <TaskExportButtons
+                    items={items}
+                    meta={{
+                      id: selectedTask.id,
+                      userName: selectedTask.user_name,
+                      branchCode: selectedTask.branch_code,
+                      createdDate: selectedTask.created_date,
+                      completed: selectedTask.completed,
+                    }}
+                    disabled={itemsLoading}
+                  />
+                )}
+              </div>
+              <Table hoverable className="text-center">
+                <TableHead>
+                  <TableRow>
+                    <TableHeadCell>Código</TableHeadCell>
+                    <TableHeadCell>Produto</TableHeadCell>
+                    <TableHeadCell>Qtd Estoque</TableHeadCell>
+                    <TableHeadCell>Qtd Sistema</TableHeadCell>
+                    <TableHeadCell>Qtd Real</TableHeadCell>
+                    <TableHeadCell>Diferença</TableHeadCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {items.map((item) => (
+                    <TableRow
+                      key={item.id}
+                      className="bg-white dark:bg-gray-800"
+                    >
+                      <TableCell>{item.code || "—"}</TableCell>
+                      <TableCell>{item.product_name}</TableCell>
+                      <TableCell>
+                        {item.stock_quantity !== null &&
+                        item.stock_quantity !== undefined
+                          ? (Number(item.stock_quantity) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {selectedTask?.completed ? (
+                          (item.quantity_system ?? "—")
+                        ) : (
+                          <TextInput
+                            type="number"
+                            value={item.quantity_system ?? ""}
+                            onChange={(e) =>
+                              handleChangeItem(
+                                item.id,
+                                "quantity_system",
+                                Number(e.target.value),
+                              )
+                            }
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {selectedTask?.completed ? (
+                          (item.quantity_real ?? "—")
+                        ) : (
+                          <TextInput
+                            type="number"
+                            value={item.quantity_real ?? ""}
+                            onChange={(e) =>
+                              handleChangeItem(
+                                item.id,
+                                "quantity_real",
+                                Number(e.target.value),
+                              )
+                            }
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.difference !== null &&
+                        item.difference !== undefined
+                          ? (Number(item.difference) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
 
           {saveMessage && (
             <p
               className={`mt-4 text-sm ${
-                saveMessage.type === "error"
-                  ? "text-red-600"
-                  : "text-green-600"
+                saveMessage.type === "error" ? "text-red-600" : "text-green-600"
               }`}
             >
               {saveMessage.text}

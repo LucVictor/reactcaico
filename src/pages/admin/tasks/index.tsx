@@ -22,6 +22,7 @@ import {
 } from "flowbite-react";
 import api from "../../../api";
 import { useAuthStore } from "../../authStore";
+import TaskExportButtons from "../../../components/TaskExportButtons";
 
 interface User {
   id: number;
@@ -290,8 +291,7 @@ export default function AdminTasks() {
       setDeleteFeedback({
         type: "success",
         text:
-          res.data?.message ||
-          `Task #${deleteTarget.id} excluída com sucesso.`,
+          res.data?.message || `Task #${deleteTarget.id} excluída com sucesso.`,
       });
       setDeleteTarget(null);
       fetchAdminTasks();
@@ -540,7 +540,7 @@ export default function AdminTasks() {
               <Textarea
                 id="custom-codigos"
                 rows={3}
-                placeholder='Ex.: C-003, C-001'
+                placeholder="Ex.: C-003, C-001"
                 value={customCodes}
                 onChange={(e) => setCustomCodes(e.target.value)}
               />
@@ -600,11 +600,23 @@ export default function AdminTasks() {
               {generated.task.completed ? "Concluída" : "Pendente"}
             </Badge>
           </div>
-          <p className="mb-3 mt-1 text-sm text-gray-500">
+          <p className="mt-1 mb-3 text-sm text-gray-500">
             Usuário: {generated.task.user_name} — Quantidade:{" "}
             {generated.task.quantity} — Data:{" "}
             {new Date(generated.task.created_date).toLocaleDateString("pt-BR")}
           </p>
+          <div className="mb-3">
+            <TaskExportButtons
+              items={generated.items}
+              meta={{
+                id: generated.task.id,
+                userName: generated.task.user_name,
+                branchCode: generated.task.branch_code,
+                createdDate: generated.task.created_date,
+                completed: generated.task.completed,
+              }}
+            />
+          </div>
           <Table hoverable className="text-center">
             <TableHead>
               <TableRow>
@@ -639,8 +651,8 @@ export default function AdminTasks() {
             </TableBody>
           </Table>
           <p className="mt-3 text-xs text-gray-500">
-            Para conferir, use a task #{generated.task.id} na página de
-            consulta acima ou no app do operador.
+            Para conferir, use a task #{generated.task.id} na página de consulta
+            acima ou no app do operador.
           </p>
         </Card>
       )}
@@ -656,10 +668,22 @@ export default function AdminTasks() {
               {customResult.task.completed ? "Concluída" : "Pendente"}
             </Badge>
           </div>
-          <p className="mb-3 mt-1 text-sm text-gray-500">
+          <p className="mt-1 mb-3 text-sm text-gray-500">
             Usuário: {customResult.task.user_name} — Quantidade:{" "}
             {customResult.task.quantity}
           </p>
+          <div className="mb-3">
+            <TaskExportButtons
+              items={customResult.items}
+              meta={{
+                id: customResult.task.id,
+                userName: customResult.task.user_name,
+                branchCode: customResult.task.branch_code,
+                createdDate: customResult.task.created_date,
+                completed: customResult.task.completed,
+              }}
+            />
+          </div>
           <Table hoverable className="text-center">
             <TableHead>
               <TableRow>
@@ -738,60 +762,84 @@ export default function AdminTasks() {
           {viewItems.length === 0 ? (
             <p className="text-gray-500">Nenhum item encontrado.</p>
           ) : (
-            <Table hoverable className="text-center">
-              <TableHead>
-                <TableRow>
-                  <TableHeadCell>ID</TableHeadCell>
-                  <TableHeadCell>Código</TableHeadCell>
-                  <TableHeadCell>Produto</TableHeadCell>
-                  <TableHeadCell>Qtd Estoque</TableHeadCell>
-                  <TableHeadCell>Qtd Sistema</TableHeadCell>
-                  <TableHeadCell>Qtd Real</TableHeadCell>
-                  <TableHeadCell>Diferença</TableHeadCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {viewItems.map((item) => (
-                  <TableRow
-                    key={item.id}
-                    className="bg-white dark:bg-gray-800"
-                  >
-                    <TableCell>{item.id}</TableCell>
-                    <TableCell>{item.code || "—"}</TableCell>
-                    <TableCell>{item.product_name}</TableCell>
-                    <TableCell>
-                      {item.stock_quantity !== null &&
-                      item.stock_quantity !== undefined
-                        ? (Number(item.stock_quantity) || 0).toLocaleString(
-                            "pt-BR",
-                          )
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {item.quantity_system !== null
-                        ? (Number(item.quantity_system) || 0).toLocaleString(
-                            "pt-BR",
-                          )
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {item.quantity_real !== null
-                        ? (Number(item.quantity_real) || 0).toLocaleString(
-                            "pt-BR",
-                          )
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      {item.difference !== null
-                        ? (Number(item.difference) || 0).toLocaleString(
-                            "pt-BR",
-                          )
-                        : "—"}
-                    </TableCell>
+            <>
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-gray-500">
+                  {viewItems.length} item(ns) • Exporte em Excel, PDF ou imprima
+                  em folha A4.
+                </p>
+                <TaskExportButtons
+                  items={viewItems}
+                  meta={(() => {
+                    const found = adminTasks.find(
+                      (t) => t.id === Number(viewTaskId),
+                    );
+                    return {
+                      id: viewTaskId || found?.id || 0,
+                      userName: found?.user_name,
+                      branchCode: found?.branch_code,
+                      createdDate: found?.created_date,
+                      completed: found?.completed,
+                    };
+                  })()}
+                  disabled={viewLoading}
+                />
+              </div>
+              <Table hoverable className="text-center">
+                <TableHead>
+                  <TableRow>
+                    <TableHeadCell>ID</TableHeadCell>
+                    <TableHeadCell>Código</TableHeadCell>
+                    <TableHeadCell>Produto</TableHeadCell>
+                    <TableHeadCell>Qtd Estoque</TableHeadCell>
+                    <TableHeadCell>Qtd Sistema</TableHeadCell>
+                    <TableHeadCell>Qtd Real</TableHeadCell>
+                    <TableHeadCell>Diferença</TableHeadCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHead>
+                <TableBody>
+                  {viewItems.map((item) => (
+                    <TableRow
+                      key={item.id}
+                      className="bg-white dark:bg-gray-800"
+                    >
+                      <TableCell>{item.id}</TableCell>
+                      <TableCell>{item.code || "—"}</TableCell>
+                      <TableCell>{item.product_name}</TableCell>
+                      <TableCell>
+                        {item.stock_quantity !== null &&
+                        item.stock_quantity !== undefined
+                          ? (Number(item.stock_quantity) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {item.quantity_system !== null
+                          ? (Number(item.quantity_system) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {item.quantity_real !== null
+                          ? (Number(item.quantity_real) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {item.difference !== null
+                          ? (Number(item.difference) || 0).toLocaleString(
+                              "pt-BR",
+                            )
+                          : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
         </ModalBody>
         <ModalFooter>
