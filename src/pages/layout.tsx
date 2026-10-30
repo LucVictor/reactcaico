@@ -192,6 +192,9 @@ export default function Layout({ pagina }: paginaProps) {
                 <DropdownItem onClick={() => navigate("/admin/Logs")}>
                   Adm: Logs
                 </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/receipt")}>
+                  Adm: Recebimentos
+                </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/checklist")}>
                   Adm: Checklist
                 </DropdownItem>

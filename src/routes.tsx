@@ -20,6 +20,7 @@ import AdminPointsAnalytics from "./pages/admin/points/analise";
 import AdminConferenciaAnalytics from "./pages/admin/conference";
 import CreateTargetConference from "./pages/admin/target";
 import ReceiptPage from "./pages/recebimento";
+import AdminReceipt from "./pages/admin/receipt";
 import ChecklistSemana from "./pages/checklist";
 import ChecklistAdmin from "./pages/admin/checklist";
 import Auditoria from "./pages/auditoria";
@@ -120,6 +121,12 @@ export const routes: AppRoute[] = [
   {
     path: "/admin/logs",
     element: <Layout pagina={<LogsPagina />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/receipt",
+    element: <Layout pagina={<AdminReceipt />} />,
     protected: true,
     adminOnly: true,
   },

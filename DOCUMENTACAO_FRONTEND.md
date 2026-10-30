@@ -90,6 +90,7 @@ interface LocalDeEstoqueStore {
   * Link para Perfil (`/profile`).
   * Links Administrativos (se `admin === 1`):
     * `Adm: Logs` (`/admin/logs`)
+    * `Adm: Recebimentos` (`/admin/receipt`)
     * `Adm: Checklist` (`/admin/checklist`)
     * `Adm: Pontos` (`/admin/pontos`)
     * `Adm: Rank` (`/admin/rank`)
@@ -289,25 +290,68 @@ interface LocalDeEstoqueStore {
 ### Página 7: Recebimento de Mercadorias (Receipts)
 * **Rota**: `/recebimento`
 * **Acesso**: Protegido
+* **Arquivos**: `src/pages/recebimento/index.tsx`, `src/pages/recebimento/types.ts`, `src/pages/recebimento/photoGallery.tsx`
 
 #### Requisições:
-| Método | Endpoint | Payload / Headers | Descrição / Resposta |
+| Método | Endpoint | Payload / Query | Descrição / Resposta |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/receipt/` | — | Lista recebimentos. Frontend filtra `user_id === user.id`. |
-| `POST` | `/receipt/` | `FormData: { user_id, user_name, local, created_date, quantity, photo: File }` (Multipart) | Cria novo recebimento com foto obrigatória. |
-| `PATCH` | `/receipt/:id` | `{ completed: true }` | Marca o recebimento como finalizado/concluído. |
-| `DELETE` | `/receipt/:id` | — | Exclui recebimento pendente. |
+| `GET` | `/receipt/today` | `local` | Lote aberto do dia (ou `null`) |
+| `GET` | `/receipt/` | `local` | Lista recebimentos. Frontend filtra `user_id === user.id`. |
+| `GET` | `/receipt/:id` | — | Detalhe do lote com itens e fotos |
+| `POST` | `/receipt/` | JSON `{ user_id, user_name, local, created_date, observations }` | Abre o lote do dia (fallback multipart em APIs antigas) |
+| `GET` | `/receipt/product-info/:code` | `local` | Auto-completa produto ou sinaliza produto novo |
+| `POST` | `/receipt/items` | `FormData` com `receipt_id`, dados do produto, `invoice_photo`, `dock_photos[]` e `shelf_photos[]` | Cadastra produto com múltiplas fotos |
+| `PATCH` | `/receipt/items/:id` | `{ quantity_physical, received_quantity, observations }` | Edita um produto recebido |
+| `DELETE` | `/receipt/items/:id` | — | Remove produto e suas fotos |
+| `POST` | `/receipt/items/:id/photos` | `FormData: { photo_type, photos[] }` | Fotos adicionais da baia/prateleira |
+| `POST` | `/receipt/items/:id/invoice-photo` | `FormData: { invoice_photo }` | Envia/substitui a nota fiscal |
+| `PATCH` | `/receipt/:id/complete` | — | Finaliza o lote (+10 pontos) |
+| `PATCH` | `/receipt/:id/reopen` | — | Reabre o lote para ajustes |
+| `DELETE` | `/receipt/:id` | — | Exclui o lote, itens, fotos e pontos |
 
 #### Regras de Negócio e Estados:
-1. **Upload Obrigatório de Foto**:
-   * O cadastro exige anexo de foto comprovatória (com preview).
-2. **Status**:
-   * `completed === false`: Badge Amarela ("Em andamento") e botões "Visualizar" e "Deletar".
-   * `completed === true`: Badge Verde ("Completo") e botão "Visualizar".
-3. **Modal de Detalhes**:
-   * Mostra data, quantidade e local.
-   * Botão "Ver Foto" abre a imagem em nova aba.
-   * Botão "Marcar como Finalizado" altera `completed` para `true`.
+1. **Abas**:
+   * **Em andamento**: consome `/receipt/today`; exibe cards de resumo e a tabela de produtos do lote.
+   * **Histórico**: lista paginada (10 por página) dos recebimentos do operador.
+2. **Produto novo**:
+   * `product-info` com `found = false` marca automaticamente o checkbox “Produto novo”, zera o estoque do sistema e libera o campo de nome.
+3. **Fotos**:
+   * Anexos opcionais e múltiplos para baia e prateleira; uma foto de nota fiscal.
+   * Miniaturas com preview antes do envio e galerias clicáveis no detalhe.
+4. **Status**:
+   * `completed === false`: badge amarela (“Em andamento”) e ações de editar/excluir produto.
+   * `completed === true`: badge verde (“Finalizado”) e botão “Reabrir”.
+   * `approved === true`: badge azul (“Aprovado”).
+5. **Ações do lote**:
+   * Finalizar exige ao menos um produto; reabrir libera o lote; excluir pede confirmação e avisa sobre remoção de fotos/pontos.
+6. **Painel Admin**:
+   * Usuários com `admin === 1` visualizam o botão “Painel Admin” que leva a `/admin/receipt`.
+
+---
+
+### Página 7.1: Admin — Recebimento de Mercadorias
+* **Rota**: `/admin/receipt`
+* **Acesso**: Admin
+* **Arquivo**: `src/pages/admin/receipt/index.tsx`
+
+#### Requisições:
+| Método | Endpoint | Payload / Query | Descrição / Resposta |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/receipt/admin/summary` | `local`, `start_date`, `end_date` | KPIs consolidados |
+| `GET` | `/receipt/admin/` | `local`, `user_id`, `date`, `start_date`, `end_date`, `completed`, `approved`, `limit`, `offset` | Listagem administrativa |
+| `GET` | `/receipt/admin/:id` | — | Detalhe com itens e fotos |
+| `POST` | `/receipt/admin/` | `{ user_id, local, created_date, observations }` | Abre lote para outro operador |
+| `PATCH` | `/receipt/admin/:id/approve` | `{ approved, observations }` | Aprova/reprova com justificativa |
+| `PATCH` | `/receipt/admin/:id/force-complete` | `?award_points=true|false` | Finalização forçada |
+| `DELETE` | `/receipt/admin/:id` | — | Exclusão definitiva |
+| `GET` | `/receipt/admin/new-products` | `local`, `start_date`, `end_date`, `limit`, `offset` | Produtos novos sem cadastro no ERP |
+
+#### Regras de Negócio:
+1. **KPIs**: cards de recebimentos, finalizados, pendentes, aprovados, itens, unidades e produtos novos, além de badges por filial.
+2. **Filtros**: filial, operador, data exata, período, situação e auditoria; paginação server-side de 20 registros.
+3. **Auditoria**: modal com itens/fotos, justificativa, aprovar, reprovar, checkbox de +10 pontos e finalização forçada.
+4. **Produtos novos**: aba dedicada com atalho “Ver recebimento” para o lote de origem.
+5. **Exclusão**: modal de confirmação explícita sobre remoção de fotos e estorno de pontos.
 
 ---
 
@@ -652,10 +696,27 @@ A semana é calculada de **Segunda a Sábado** (6 dias):
 | `GET` | `/work_conference/items/:id` | Itens de uma tarefa |
 | `PATCH` | `/work_conference/items/batch` | Atualiza em lote itens de tarefa |
 | `DELETE` | `/work_conference/items/:id` | Exclusão de item de tarefa |
+| `GET` | `/receipt/today` | Lote de recebimento aberto do dia |
 | `GET` | `/receipt/` | Listagem de recebimentos de mercadoria |
-| `POST` | `/receipt/` | Cadastro de recebimento com foto |
-| `PATCH` | `/receipt/:id` | Finalização de recebimento (`completed: true`) |
+| `GET` | `/receipt/:id` | Detalhe do recebimento com itens e fotos |
+| `POST` | `/receipt/` | Abertura de lote de recebimento |
+| `GET` | `/receipt/product-info/:code` | Consulta de produto para auto-completar o recebimento |
+| `POST` | `/receipt/items` | Cadastro de produto recebido com fotos |
+| `PATCH` | `/receipt/items/:id` | Edição de produto recebido |
+| `DELETE` | `/receipt/items/:id` | Exclusão de produto recebido |
+| `POST` | `/receipt/items/:id/photos` | Fotos adicionais da baia/prateleira |
+| `POST` | `/receipt/items/:id/invoice-photo` | Envio/substituição da nota fiscal |
+| `PATCH` | `/receipt/:id/complete` | Finalização do recebimento |
+| `PATCH` | `/receipt/:id/reopen` | Reabertura do recebimento |
 | `DELETE` | `/receipt/:id` | Exclusão de recebimento |
+| `GET` | `/receipt/admin/summary` | KPIs administrativos de recebimento |
+| `GET` | `/receipt/admin/` | Listagem administrativa de recebimentos |
+| `GET` | `/receipt/admin/:id` | Detalhe administrativo do recebimento |
+| `POST` | `/receipt/admin/` | Abertura de recebimento para outro operador |
+| `PATCH` | `/receipt/admin/:id/approve` | Aprovação/reprovação de recebimento |
+| `PATCH` | `/receipt/admin/:id/force-complete` | Finalização forçada de recebimento |
+| `DELETE` | `/receipt/admin/:id` | Exclusão administrativa de recebimento |
+| `GET` | `/receipt/admin/new-products` | Produtos novos sem cadastro no ERP |
 | `GET` | `/target/conference/:YYYY-MM` | Metas mensais de conferência |
 | `POST` | `/target/conference` | Cadastro de meta mensal |
 | `GET` | `/rank/points/:YYYY-MM` | Pontuações do ranking mensal |
