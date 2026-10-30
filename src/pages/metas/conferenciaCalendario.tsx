@@ -1,445 +1,342 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Table,
-  TableHead,
-  TableHeadCell,
-  TableBody,
-  TableRow,
-  TableCell,
-  Progress,
+  Alert,
+  Button,
   Label,
   Spinner,
+  TextInput,
+  ToggleSwitch,
 } from "flowbite-react";
+import { HiRefresh } from "react-icons/hi";
 
 import api from "../../api";
-
 import { useAuthStore } from "../authStore";
+import {
+  META_SEMANAL_PADRAO,
+  WeeklyConferenceProgress,
+  WeeklyConferenceTable,
+  formatarMesLabel,
+  formatarNumero,
+  getApiErrorMessage,
+  type WeeklyConferenceSummary,
+} from "./weeklyConference";
 
-const META_SEMANAL = 150;
+/* ============================================================
+   Cartão de indicador
+============================================================ */
 
-export interface ProdutoConferidoProps {
-  id: number;
-  product_name: string;
-  product_code: string;
-  quantity_real: number;
-  quantity_system: number;
-  diference: number;
-  cost_total: number;
-  created_date: string;
-  created_by: string;
-  date_: string; // espera 'YYYY-MM-DD' ou 'YYYY-MM-DDTHH:MM:SS'
+type StatTone = "blue" | "green" | "yellow" | "gray";
+
+const statToneClasses: Record<StatTone, string> = {
+  blue: "text-blue-600 dark:text-blue-400",
+  green: "text-green-600 dark:text-green-400",
+  yellow: "text-yellow-600 dark:text-yellow-400",
+  gray: "text-gray-800 dark:text-gray-100",
+};
+
+function StatCard({
+  label,
+  value,
+  hint,
+  tone = "gray",
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: StatTone;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <p className="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400">
+        {label}
+      </p>
+      <p className={`mt-1 text-2xl font-bold ${statToneClasses[tone]}`}>
+        {value}
+      </p>
+      {hint && (
+        <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+          {hint}
+        </p>
+      )}
+    </div>
+  );
 }
 
-export interface WorkItemProps {
-  id: number;
-  product_name: string;
-  product_code: string;
-  quantity_real: number | null;
-  quantity_system: number | null;
-  created_date: string;
-  date_: string;
-  work_conference_id: number;
-}
-
-function formatarDataLocal(ano: number, mes: number, dia: number) {
-  return `${ano}-${String(mes).padStart(2, "0")}-${String(dia).padStart(2, "0")}`;
-}
-
-function adicionarDias(data: Date, dias: number) {
-  const novaData = new Date(data);
-  novaData.setDate(novaData.getDate() + dias);
-  return novaData;
-}
-
-function formatarPeriodo(data: Date) {
-  return data.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-  });
-}
+/* ============================================================
+   Página operacional — /metas/conferencia
+============================================================ */
 
 export function ConferenciaCalendario() {
-  const [produtosConferidos, setProdutosConferidos] = useState<
-    ProdutoConferidoProps[]
-  >([]);
-  const [workItems, setWorkItems] = useState<WorkItemProps[]>([]);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.admin === 1;
+
   const [mesSelecionado, setMesSelecionado] = useState<string>(() => {
     const agora = new Date();
     const mes = String(agora.getMonth() + 1).padStart(2, "0");
     return `${agora.getFullYear()}-${mes}`;
   });
 
-  const [loading, setLoading] = useState<boolean>(false);
-  const user = useAuthStore((state) => state.user);
+  const [metaInput, setMetaInput] = useState(String(META_SEMANAL_PADRAO));
+  const [metaSemanal, setMetaSemanal] = useState(META_SEMANAL_PADRAO);
+  const [todosUsuarios, setTodosUsuarios] = useState(false);
 
-  const mesesOptions = Array.from({ length: 12 }).map((_, i) => {
-    const data = new Date();
-    data.setMonth(data.getMonth() - i);
-    const valor = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(
-      2,
-      "0",
-    )}`;
-    const label = data.toLocaleString("pt-BR", {
-      month: "long",
-      year: "numeric",
-    });
-    return { valor, label };
-  });
+  const [resumo, setResumo] = useState<WeeklyConferenceSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [recarregar, setRecarregar] = useState(0);
 
-  // Calcula, para o mês selecionado, o range de datas que cobre TODAS as
-  // semanas exibidas na tabela (inclusive dias do mês anterior/seguinte que
-  // pertencem à primeira/última semana). Isso é necessário porque uma
-  // semana pode começar em agosto e terminar em setembro, por exemplo.
-  const rangeBusca = useMemo(() => {
-    const [ano, mes] = mesSelecionado.split("-").map(Number);
-    const primeiroDiaMes = new Date(ano, mes - 1, 1);
-    const ultimoDiaMes = new Date(ano, mes, 0);
+  const mesesOptions = useMemo(
+    () =>
+      Array.from({ length: 12 }).map((_, i) => {
+        const data = new Date();
+        data.setDate(1);
+        data.setMonth(data.getMonth() - i);
+        const valor = `${data.getFullYear()}-${String(
+          data.getMonth() + 1,
+        ).padStart(2, "0")}`;
+        return { valor, label: formatarMesLabel(valor) };
+      }),
+    [],
+  );
 
-    // Início da primeira semana (sexta-feira anterior ou igual ao dia 1)
-    const inicioSemana = new Date(primeiroDiaMes);
-    const diasAteSexta = (inicioSemana.getDay() - 5 + 7) % 7;
-    inicioSemana.setDate(inicioSemana.getDate() - diasAteSexta);
+  const aplicarMeta = useCallback(
+    (forcarAtualizacao = false) => {
+      const valor = Number.parseInt(metaInput, 10);
 
-    // Fim da última semana que contém o último dia do mês
-    const diasDesdeUltimaSexta = (ultimoDiaMes.getDay() - 5 + 7) % 7;
-    const inicioUltimaSemana = adicionarDias(
-      ultimoDiaMes,
-      -diasDesdeUltimaSexta,
-    );
-    const fimUltimaSemana = adicionarDias(inicioUltimaSemana, 6);
+      if (!Number.isFinite(valor) || valor < 1) {
+        setErro(
+          "Informe uma meta semanal válida (inteiro maior ou igual a 1).",
+        );
+        return false;
+      }
 
-    return {
-      inicio: formatarDataLocal(
-        inicioSemana.getFullYear(),
-        inicioSemana.getMonth() + 1,
-        inicioSemana.getDate(),
-      ),
-      fim: formatarDataLocal(
-        fimUltimaSemana.getFullYear(),
-        fimUltimaSemana.getMonth() + 1,
-        fimUltimaSemana.getDate(),
-      ),
-    };
-  }, [mesSelecionado]);
+      setErro(null);
+      setMetaInput(String(valor));
 
-  const buscarProdutosConferidos = useCallback(async () => {
-    try {
-      const response = await api.get("/conference/between", {
-        params: {
-          date1: rangeBusca.inicio,
-          date2: rangeBusca.fim,
-          user: user?.id,
-        },
-      });
+      if (valor === metaSemanal) {
+        if (forcarAtualizacao) setRecarregar((contador) => contador + 1);
+      } else {
+        setMetaSemanal(valor);
+      }
 
-      setProdutosConferidos(response.data ?? []);
-    } catch (err) {
-      console.error("Erro ao buscar produtos conferidos:", err);
-      setProdutosConferidos([]);
-    }
-  }, [rangeBusca, user?.id]);
-
-  const buscarWorkItems = useCallback(async () => {
-    try {
-      const response = await api.get("/work_conference/items/", {
-        params: { date1: rangeBusca.inicio, date2: rangeBusca.fim },
-      });
-
-      setWorkItems(response.data ?? []);
-    } catch (err) {
-      console.error("Erro ao buscar Work Items:", err);
-      setWorkItems([]);
-    }
-  }, [rangeBusca]);
+      return true;
+    },
+    [metaInput, metaSemanal],
+  );
 
   useEffect(() => {
-    let mounted = true;
+    const controller = new AbortController();
+    let ativo = true;
+
+    // Ao trocar de mês, evita exibir o resumo do mês anterior.
+    setResumo((anterior) =>
+      anterior && anterior.mes === mesSelecionado ? anterior : null,
+    );
+    setLoading(true);
+    setErro(null);
 
     const carregar = async () => {
-      setLoading(true);
-      await Promise.all([buscarProdutosConferidos(), buscarWorkItems()]);
-      if (mounted) {
-        setLoading(false);
+      try {
+        const { data } = await api.get<WeeklyConferenceSummary>(
+          `/target/conference/weekly/${mesSelecionado}`,
+          {
+            params: {
+              meta_semanal: metaSemanal,
+              ...(todosUsuarios ? { all_users: true } : {}),
+            },
+            signal: controller.signal,
+          },
+        );
+
+        if (ativo) setResumo(data);
+      } catch (err) {
+        if (!ativo || controller.signal.aborted) return;
+        setErro(getApiErrorMessage(err));
+      } finally {
+        if (ativo) setLoading(false);
       }
     };
 
     carregar();
 
     return () => {
-      mounted = false;
+      ativo = false;
+      controller.abort();
     };
-  }, [buscarProdutosConferidos, buscarWorkItems]);
+  }, [mesSelecionado, metaSemanal, todosUsuarios, recarregar]);
 
-  // Agora não filtramos mais por mês aqui: o backend já retorna somente o
-  // range de datas que cobre exatamente as semanas exibidas (rangeBusca),
-  // então todos os itens recebidos são relevantes.
-  //
-  // Itens com quantity_system < 0 (estoque negativo) NÃO entram na
-  // contagem que vale para a meta de 150/semana. Eles são contabilizados
-  // à parte, em `negativosPorDia`, apenas para exibição informativa.
-  const { produtosPorDia, negativosPorDia } = useMemo(() => {
-    const porDia: Record<string, number> = {};
-    const negPorDia: Record<string, number> = {};
-
-    const registrar = (
-      dataStr: string | undefined,
-      qtySystem: number | null | undefined,
-    ) => {
-      if (!dataStr) return;
-      const dia = dataStr.slice(0, 10);
-
-      const isNegativo = typeof qtySystem === "number" && qtySystem < 0;
-
-      if (isNegativo) {
-        // Não entra na meta, só é contado separadamente (informativo)
-        negPorDia[dia] = (negPorDia[dia] || 0) + 1;
-      } else {
-        porDia[dia] = (porDia[dia] || 0) + 1;
-      }
-    };
-
-    produtosConferidos.forEach(
-      (p: {
-        date_: string | undefined;
-        quantity_system: number | null | undefined;
-      }) => registrar(p?.date_, p?.quantity_system),
-    );
-    workItems.forEach((w) => registrar(w?.date_, w?.quantity_system));
-
-    return { produtosPorDia: porDia, negativosPorDia: negPorDia };
-  }, [produtosConferidos, workItems]);
-
-  const semanasDoMes = useMemo(() => {
-    const [ano, mes] = mesSelecionado.split("-").map(Number);
-    const ultimoDia = new Date(ano, mes, 0);
-    const primeiroDia = new Date(ano, mes - 1, 1);
-
-    const inicioSemana = new Date(primeiroDia);
-    const diasAteSexta = (inicioSemana.getDay() - 5 + 7) % 7;
-    inicioSemana.setDate(inicioSemana.getDate() - diasAteSexta);
-
-    const semanas: {
-      numero: number;
-      inicio: string;
-      fim: string;
-      quantidade: number;
-      quantidadeNegativos: number;
-      faltam: number;
-      metaSemana: number;
-      atingiuMeta: boolean;
-    }[] = [];
-
-    let semanaAtual = new Date(inicioSemana);
-    let contador = 1;
-
-    while (semanaAtual <= ultimoDia) {
-      const semanaFim = adicionarDias(semanaAtual, 6);
-      let quantidade = 0;
-      let quantidadeNegativos = 0;
-
-      // Soma TODOS os dias da semana (mesmo que caiam no mês anterior ou
-      // seguinte), pois a semana é uma unidade fixa de 7 dias e não deve
-      // ser recortada pelo mês selecionado. Antes, dias fora do mês eram
-      // ignorados, fazendo a mesma semana aparecer com contagens diferentes
-      // (e incompletas) em cada mês que ela toca.
-      for (
-        const data = new Date(semanaAtual);
-        data <= semanaFim;
-        data.setDate(data.getDate() + 1)
-      ) {
-        const chave = formatarDataLocal(
-          data.getFullYear(),
-          data.getMonth() + 1,
-          data.getDate(),
-        );
-
-        quantidade += produtosPorDia[chave] || 0;
-        quantidadeNegativos += negativosPorDia[chave] || 0;
-      }
-
-      semanas.push({
-        numero: contador,
-        inicio: formatarPeriodo(semanaAtual),
-        fim: formatarPeriodo(semanaFim),
-        quantidade,
-        quantidadeNegativos,
-        faltam: Math.max(META_SEMANAL - quantidade, 0),
-        metaSemana: META_SEMANAL,
-        atingiuMeta: quantidade >= META_SEMANAL,
-      });
-
-      semanaAtual = adicionarDias(semanaAtual, 7);
-      contador += 1;
-    }
-
-    return semanas;
-  }, [mesSelecionado, produtosPorDia, negativosPorDia]);
-
-  const totalMensal = useMemo(() => {
-    const [ano, mes] = mesSelecionado.split("-").map(Number);
-    let total = 0;
-    Object.entries(produtosPorDia).forEach(([chave, qtd]) => {
-      const [anoChave, mesChave] = chave.split("-").map(Number);
-      if (anoChave === ano && mesChave === mes) {
-        total += qtd;
-      }
-    });
-    return total;
-  }, [produtosPorDia, mesSelecionado]);
-
-  const semanasComMetaBatida = semanasDoMes.filter(
-    (semana) => semana.atingiuMeta,
-  ).length;
-
-  const progressoPercentual =
-    semanasDoMes.length === 0
-      ? 0
-      : Math.round(
-          Math.min((semanasComMetaBatida / semanasDoMes.length) * 100, 100),
-        );
-
-  const corProgresso =
-    progressoPercentual < 50
-      ? "failure"
-      : progressoPercentual < 80
-        ? "warning"
-        : "success";
-
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <Spinner size="xl" color="info" aria-label="Carregando dados..." />
-      </div>
-    );
-  }
+  const semanas = resumo?.semanas ?? [];
+  const totalConferencias = semanas.reduce(
+    (total, semana) => total + semana.conferencias,
+    0,
+  );
+  const totalTasks = semanas.reduce((total, semana) => total + semana.tasks, 0);
 
   return (
-    <div className="m-auto w-full max-w-4xl rounded-xl bg-gray-50 p-6 shadow-md transition-colors duration-300 dark:bg-gray-800">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
-          Conferência Semanal de Produtos
-        </h2>
+    <section className="mx-auto w-full max-w-6xl space-y-5 rounded-xl bg-gray-50 p-4 shadow-md transition-colors duration-300 sm:p-6 dark:bg-gray-800">
+      {/* ============================ Cabeçalho / filtros ============================ */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
+            Conferência Semanal de Produtos
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Semanas de sexta a quinta, com conferências avulsas e itens
+            conferidos nas tasks.
+          </p>
+        </div>
 
-        <div className="flex flex-col items-end">
-          <Label
-            htmlFor="mes"
-            className="mb-1 text-gray-700 dark:text-gray-300"
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <Label
+              htmlFor="mes"
+              className="mb-1 text-gray-700 dark:text-gray-300"
+            >
+              Mês
+            </Label>
+            <select
+              id="mes"
+              value={mesSelecionado}
+              onChange={(e) => setMesSelecionado(e.target.value)}
+              className="rounded-lg border border-gray-300 bg-white px-2.5 py-2 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
+            >
+              {mesesOptions.map((m) => (
+                <option key={m.valor} value={m.valor}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <Label
+              htmlFor="metaSemanal"
+              className="mb-1 text-gray-700 dark:text-gray-300"
+            >
+              Meta semanal
+            </Label>
+            <TextInput
+              id="metaSemanal"
+              type="number"
+              min={1}
+              step={1}
+              value={metaInput}
+              onChange={(e) => setMetaInput(e.target.value)}
+              onBlur={() => aplicarMeta()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") aplicarMeta(true);
+              }}
+              className="w-28"
+            />
+          </div>
+
+          <Button
+            color="light"
+            onClick={() => aplicarMeta(true)}
+            disabled={loading}
           >
-            Filtro de mês
-          </Label>
-          <select
-            value={mesSelecionado}
-            onChange={(e) => setMesSelecionado(e.target.value)}
-            className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm text-gray-800 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
-          >
-            {mesesOptions.map((m) => (
-              <option key={m.valor} value={m.valor}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+            <HiRefresh className="mr-2 h-4 w-4" />
+            Atualizar
+          </Button>
         </div>
       </div>
 
-      <div className="mb-6 text-center">
-        <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Meta mínima semanal: <strong>{META_SEMANAL}</strong> conferências
-        </p>
-        <p className="mb-2 text-gray-800 dark:text-gray-100">
-          Total do mês: <strong>{totalMensal}</strong> conferências
-        </p>
-        <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
-          Semanas com meta batida: <strong>{semanasComMetaBatida}</strong>/
-          <strong>{semanasDoMes.length}</strong>
-        </p>
+      {isAdmin && (
+        <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-gray-700 dark:bg-gray-900/40">
+          <div>
+            <p className="text-sm font-medium text-gray-800 dark:text-gray-100">
+              Visão administrativa
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Agregue as conferências de todos os usuários no mesmo resumo.
+            </p>
+          </div>
+          <ToggleSwitch
+            checked={todosUsuarios}
+            onChange={setTodosUsuarios}
+            label="Todos os usuários"
+            color="blue"
+          />
+        </div>
+      )}
 
-        <Progress
-          progress={progressoPercentual}
-          color={corProgresso}
-          size="lg"
-          labelProgress
-          labelText
-          textLabel={`${semanasComMetaBatida} / ${semanasDoMes.length} semanas`}
-        />
-      </div>
-
-      <div className="rounded-lg border border-gray-300 dark:border-gray-700">
-        <Table hoverable className="min-w-[860px] text-center">
-          <TableHead className="bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Semana
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Período
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Qtd Conferida
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Estoques Negativos
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Meta da Semana
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Faltam
-            </TableHeadCell>
-            <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-              Status
-            </TableHeadCell>
-          </TableHead>
-          <TableBody className="divide-y divide-gray-200 dark:divide-gray-700">
-            {semanasDoMes.map((semana) => (
-              <TableRow
-                key={`${semana.numero}-${semana.inicio}`}
-                className="bg-white hover:bg-gray-50 dark:bg-gray-800 dark:hover:bg-gray-700"
+      {erro && (
+        <Alert color="failure">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>{erro}</span>
+            {!loading && (
+              <Button
+                size="xs"
+                color="failure"
+                onClick={() => setRecarregar((valor) => valor + 1)}
               >
-                <TableCell className="px-3 py-3 font-medium whitespace-nowrap">
-                  {semana.numero}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.inicio} - {semana.fim}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.quantidade}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.quantidadeNegativos > 0 ? (
-                    <span className="whitespace-nowrapdark:text-orange-100 inline-block rounded-full px-2.5 py-1 text-sm font-semibold">
-                      {semana.quantidadeNegativos}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">0</span>
-                  )}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.metaSemana}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.faltam > 0 ? (
-                    <span className="inline-block rounded-full bg-yellow-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-yellow-700 dark:bg-yellow-700 dark:text-yellow-100">
-                      {semana.faltam}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="px-3 py-3 whitespace-nowrap">
-                  {semana.atingiuMeta ? (
-                    <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-green-600 dark:bg-green-700 dark:text-green-100">
-                      ✔️ Meta atingida
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-sm font-semibold whitespace-nowrap text-red-600 dark:bg-red-700 dark:text-red-100">
-                      ✖️ Abaixo da meta
-                    </span>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+                Tentar novamente
+              </Button>
+            )}
+          </div>
+        </Alert>
+      )}
+
+      {loading && !resumo && (
+        <div className="flex h-64 items-center justify-center">
+          <Spinner size="xl" color="info" aria-label="Carregando dados..." />
+        </div>
+      )}
+
+      {!loading && !resumo && !erro && (
+        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
+          Nenhum dado encontrado para o período selecionado.
+        </div>
+      )}
+
+      {resumo && (
+        <>
+          {/* ============================ Indicadores ============================ */}
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <StatCard
+              label="Total do mês"
+              value={formatarNumero(resumo.total_mes)}
+              hint="conferências dentro do mês"
+              tone="blue"
+            />
+            <StatCard
+              label="Meta semanal"
+              value={formatarNumero(resumo.meta_semanal)}
+              hint={`${resumo.total_semanas} semana(s) no período`}
+            />
+            <StatCard
+              label="Semanas com meta"
+              value={`${formatarNumero(
+                resumo.semanas_com_meta_batida,
+              )}/${formatarNumero(resumo.total_semanas)}`}
+              hint={`${resumo.progresso_percentual}% do período`}
+              tone={
+                resumo.semanas_com_meta_batida >= resumo.total_semanas
+                  ? "green"
+                  : "yellow"
+              }
+            />
+            <StatCard
+              label="Origem no período"
+              value={`${formatarNumero(totalConferencias)} + ${formatarNumero(
+                totalTasks,
+              )}`}
+              hint="conferências + tasks"
+            />
+          </div>
+
+          <WeeklyConferenceProgress resumo={resumo} loading={loading} />
+
+          <WeeklyConferenceTable semanas={semanas} />
+
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Total do mês considera apenas os dias do mês selecionado; as semanas
+            podem incluir dias do mês anterior ou seguinte. Estoques negativos
+            aparecem apenas para fins informativos.
+            {todosUsuarios && " Exibindo dados agregados de todos os usuários."}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
