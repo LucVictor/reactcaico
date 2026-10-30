@@ -70,8 +70,7 @@ export function ConferenciaCalendario() {
     return `${agora.getFullYear()}-${mes}`;
   });
 
-  const [metaInput, setMetaInput] = useState(String(META_SEMANAL_PADRAO));
-  const [metaSemanal, setMetaSemanal] = useState(META_SEMANAL_PADRAO);
+  const [metaSemanal] = useState(META_SEMANAL_PADRAO);
   const [todosUsuarios, setTodosUsuarios] = useState(false);
 
   const [resumo, setResumo] = useState<WeeklyConferenceSummary | null>(null);
