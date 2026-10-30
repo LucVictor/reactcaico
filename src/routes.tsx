@@ -24,6 +24,7 @@ import AdminReceipt from "./pages/admin/receipt";
 import ChecklistSemana from "./pages/checklist";
 import ChecklistAdmin from "./pages/admin/checklist";
 import Auditoria from "./pages/auditoria";
+import { TaskExportPage, AdminTaskExportPage } from "./pages/taskExport";
 export interface AppRoute {
   path: string;
   element: JSX.Element;
@@ -163,6 +164,17 @@ export const routes: AppRoute[] = [
   {
     path: "/admin/metas",
     element: <Layout pagina={<CreateTargetConference />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/task/export",
+    element: <Layout pagina={<TaskExportPage />} />,
+    protected: true,
+  },
+  {
+    path: "/task/admin/export",
+    element: <Layout pagina={<AdminTaskExportPage />} />,
     protected: true,
     adminOnly: true,
   },

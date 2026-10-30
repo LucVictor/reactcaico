@@ -8,6 +8,7 @@ import {
   ToggleSwitch,
 } from "flowbite-react";
 import { HiRefresh } from "react-icons/hi";
+import { useNavigate } from "react-router-dom";
 
 import api from "../../api";
 import { useAuthStore } from "../authStore";
@@ -67,6 +68,7 @@ function StatCard({
 ============================================================ */
 
 export function ConferenciaCalendario() {
+  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.admin === 1;
 
@@ -237,6 +239,9 @@ export function ConferenciaCalendario() {
           >
             <HiRefresh className="mr-2 h-4 w-4" />
             Atualizar
+          </Button>
+          <Button color="blue" onClick={() => navigate("/task/export")}>
+            Exportar relatório
           </Button>
         </div>
       </div>

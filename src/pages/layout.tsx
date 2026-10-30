@@ -218,6 +218,9 @@ export default function Layout({ pagina }: paginaProps) {
                 <DropdownItem onClick={() => navigate("/admin/tasks")}>
                   Adm: Tarefas
                 </DropdownItem>
+                <DropdownItem onClick={() => navigate("/task/admin/export")}>
+                  Adm: Exportação
+                </DropdownItem>
               </>
             )}
 
