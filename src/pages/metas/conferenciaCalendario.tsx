@@ -1,13 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Button,
-  Label,
-  Spinner,
-  TextInput,
-  ToggleSwitch,
-} from "flowbite-react";
-import { HiRefresh } from "react-icons/hi";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Label, Spinner, ToggleSwitch } from "flowbite-react";
 import { useNavigate } from "react-router-dom";
 
 import api from "../../api";
@@ -99,31 +91,6 @@ export function ConferenciaCalendario() {
         return { valor, label: formatarMesLabel(valor) };
       }),
     [],
-  );
-
-  const aplicarMeta = useCallback(
-    (forcarAtualizacao = false) => {
-      const valor = Number.parseInt(metaInput, 10);
-
-      if (!Number.isFinite(valor) || valor < 1) {
-        setErro(
-          "Informe uma meta semanal válida (inteiro maior ou igual a 1).",
-        );
-        return false;
-      }
-
-      setErro(null);
-      setMetaInput(String(valor));
-
-      if (valor === metaSemanal) {
-        if (forcarAtualizacao) setRecarregar((contador) => contador + 1);
-      } else {
-        setMetaSemanal(valor);
-      }
-
-      return true;
-    },
-    [metaInput, metaSemanal],
   );
 
   useEffect(() => {
