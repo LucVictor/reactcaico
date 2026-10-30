@@ -168,7 +168,7 @@ export default function ReceiptPage() {
   const fetchActive = useCallback(async () => {
     try {
       const res = await api.get<Receipt | null>("/receipt/today", {
-        params: { local: idLocal || undefined },
+        params: { local: idLocal || user?.local || undefined },
       });
       const receipt = res.data;
       if (!receipt?.id) {
@@ -192,22 +192,23 @@ export default function ReceiptPage() {
         );
       }
     }
-  }, [idLocal, showFeedback]);
+  }, [idLocal, user?.local, showFeedback]);
 
   const fetchReceipts = useCallback(async () => {
     setLoading(true);
     try {
       const res = await api.get<Receipt[]>("/receipt/", {
-        params: { local: idLocal || undefined },
+        params: { local: idLocal || user?.local || undefined },
       });
       const list = Array.isArray(res.data) ? res.data : [];
-      setReceipts(list.filter((r) => r.user_id === user?.id));
+      // Lote é da filial/dia: qualquer usuário da filial deve vê-lo (mesma regra do app Android).
+      setReceipts(list);
     } catch (err) {
       showFeedback("error", getApiError(err, "Erro ao carregar recebimentos."));
     } finally {
       setLoading(false);
     }
-  }, [idLocal, user?.id, showFeedback]);
+  }, [idLocal, user?.local, showFeedback]);
 
   useEffect(() => {
     fetchActive();
@@ -238,18 +239,59 @@ export default function ReceiptPage() {
   ============================================================ */
   const openReceipt = async () => {
     if (!user) return;
-    if (!idLocal && !user.local) {
+    const targetLocal = idLocal || user.local;
+    if (!targetLocal) {
       showFeedback("error", "Selecione um local de estoque antes de abrir.");
       return;
     }
+    const todayLocal = dayjs().format("YYYY-MM-DD");
+    const targetDate = createForm.created_date || todayLocal;
+    const isToday = targetDate === todayLocal;
 
     setBusy(true);
     try {
+      // Reaproveita lote já aberto na filial/data (ex.: aberto pelo app Android),
+      // evitando dois lotes abertos no mesmo dia. Para hoje usamos /receipt/today,
+      // que compara a data em UTC — a mesma usada pelo backend ao criar o lote.
+      let existing: Receipt | null = null;
+      if (isToday) {
+        const todayRes = await api.get<Receipt | null>("/receipt/today", {
+          params: { local: targetLocal },
+        });
+        existing = todayRes.data;
+      } else {
+        const existingRes = await api.get<Receipt[]>("/receipt/", {
+          params: { local: targetLocal, date: targetDate, completed: false },
+        });
+        existing =
+          (Array.isArray(existingRes.data) ? existingRes.data : []).find(
+            (r) => !r.completed,
+          ) ?? null;
+      }
+
+      if (existing?.id) {
+        setCreateOpen(false);
+        setTab("active");
+        await refreshAll();
+        try {
+          const detail = await api.get<Receipt>(`/receipt/${existing.id}`);
+          setActiveReceipt(detail.data);
+        } catch {
+          setActiveReceipt(existing);
+        }
+        showFeedback(
+          "success",
+          `Já existe um recebimento aberto (#${existing.id}) nesta data. Continuando nele.`,
+        );
+        return;
+      }
+
       const res = await createReceiptRequest({
         user_id: user.id,
         user_name: user.name,
-        local: idLocal || user.local,
-        created_date: createForm.created_date,
+        local: targetLocal,
+        // Hoje: deixa o backend usar a data UTC, igual ao app Android e ao /receipt/today.
+        ...(isToday ? {} : { created_date: targetDate }),
         observations: createForm.observations || undefined,
       });
       showFeedback("success", "Recebimento aberto com sucesso!");
@@ -290,7 +332,7 @@ export default function ReceiptPage() {
     try {
       const res = await api.get<ProductInfo>(
         `/receipt/product-info/${encodeURIComponent(code)}`,
-        { params: { local: idLocal || undefined } },
+        { params: { local: idLocal || user?.local || undefined } },
       );
       const product = res.data;
 
@@ -372,7 +414,6 @@ export default function ReceiptPage() {
     setBusy(true);
     try {
       const formData = new FormData();
-      formData.append("receipt_id", String(activeReceipt.id));
       if (itemForm.code.trim())
         formData.append("product_code", itemForm.code.trim());
       formData.append("is_new_product", String(itemForm.isNew));
@@ -391,9 +432,11 @@ export default function ReceiptPage() {
       dockFiles.forEach((file) => formData.append("dock_photos", file));
       shelfFiles.forEach((file) => formData.append("shelf_photos", file));
 
-      await api.post("/receipt/items", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api.post(
+        `/receipt/items?receipt_id=${activeReceipt.id}`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
 
       showFeedback("success", "Produto adicionado ao recebimento!");
       setItemOpen(false);
