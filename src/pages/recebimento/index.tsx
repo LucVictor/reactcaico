@@ -636,7 +636,7 @@ export default function ReceiptPage() {
      Render
   ============================================================ */
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-2 text-gray-100">
+    <div className="mx-auto max-w-7xl space-y-6 rounded-2xl p-2 text-gray-100 dark:bg-gray-800">
       {/* Cabeçalho */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -670,15 +670,6 @@ export default function ReceiptPage() {
           )}
         </div>
       </div>
-
-      {feedback && (
-        <Alert
-          color={feedback.type === "error" ? "failure" : "success"}
-          onDismiss={() => setFeedback(null)}
-        >
-          {feedback.text}
-        </Alert>
-      )}
 
       {/* Abas */}
       <div className="flex gap-2">
@@ -1144,6 +1135,14 @@ export default function ReceiptPage() {
       >
         <ModalHeader>
           Adicionar Produto {activeReceipt ? `— Lote #${activeReceipt.id}` : ""}
+          {feedback && (
+            <Alert
+              color={feedback.type === "error" ? "failure" : "success"}
+              onDismiss={() => setFeedback(null)}
+            >
+              {feedback.text}
+            </Alert>
+          )}
         </ModalHeader>
         <ModalBody className="max-h-[70vh] overflow-y-auto">
           <div className="space-y-5">

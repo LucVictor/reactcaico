@@ -180,7 +180,7 @@ export function WeeklyConferenceTable({
             Conferências
           </TableHeadCell>
           <TableHeadCell className="px-3 py-3 whitespace-nowrap">
-            Tasks
+            Tarefas
           </TableHeadCell>
           <TableHeadCell className="px-3 py-3 whitespace-nowrap">
             Total
@@ -234,7 +234,7 @@ export function WeeklyConferenceTable({
               <TableCell className="px-3 py-3 whitespace-nowrap">
                 {semana.quantidade_negativos > 0 ? (
                   <span
-                    className="inline-block rounded-full bg-orange-100 px-2.5 py-1 text-sm font-semibold text-orange-700 dark:bg-orange-700 dark:text-orange-100"
+                    className="inline-block rounded-full bg-orange-100 px-2.5 py-1 text-sm font-semibold text-orange-700 dark:bg-orange-300 dark:text-orange-100"
                     title="Estoque negativo — não conta para a meta"
                   >
                     {formatarNumero(semana.quantidade_negativos)}

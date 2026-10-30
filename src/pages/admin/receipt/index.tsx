@@ -497,7 +497,7 @@ export default function AdminReceipt() {
      Render
   ============================================================ */
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4 text-gray-100">
+    <div className="mx-auto max-w-7xl space-y-6 rounded-2xl p-4 text-gray-100 dark:bg-gray-800">
       {/* Cabeçalho */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>

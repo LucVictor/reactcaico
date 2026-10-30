@@ -184,7 +184,7 @@ export function ConferenciaCalendario() {
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Semanas de sexta a quinta, com conferências avulsas e itens
-            conferidos nas tasks.
+            conferidos nas tarefas.
           </p>
         </div>
 
@@ -192,9 +192,9 @@ export function ConferenciaCalendario() {
           <div>
             <Label
               htmlFor="mes"
-              className="mb-1 text-gray-700 dark:text-gray-300"
+              className="mr-3 mb-1 text-gray-700 dark:text-gray-300"
             >
-              Mês
+              Mês:
             </Label>
             <select
               id="mes"
@@ -210,36 +210,6 @@ export function ConferenciaCalendario() {
             </select>
           </div>
 
-          <div>
-            <Label
-              htmlFor="metaSemanal"
-              className="mb-1 text-gray-700 dark:text-gray-300"
-            >
-              Meta semanal
-            </Label>
-            <TextInput
-              id="metaSemanal"
-              type="number"
-              min={1}
-              step={1}
-              value={metaInput}
-              onChange={(e) => setMetaInput(e.target.value)}
-              onBlur={() => aplicarMeta()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") aplicarMeta(true);
-              }}
-              className="w-28"
-            />
-          </div>
-
-          <Button
-            color="light"
-            onClick={() => aplicarMeta(true)}
-            disabled={loading}
-          >
-            <HiRefresh className="mr-2 h-4 w-4" />
-            Atualizar
-          </Button>
           <Button color="blue" onClick={() => navigate("/task/export")}>
             Exportar relatório
           </Button>
@@ -326,7 +296,7 @@ export function ConferenciaCalendario() {
               value={`${formatarNumero(totalConferencias)} + ${formatarNumero(
                 totalTasks,
               )}`}
-              hint="conferências + tasks"
+              hint="conferências + tarefas"
             />
           </div>
 

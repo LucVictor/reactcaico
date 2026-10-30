@@ -307,7 +307,7 @@ export default function AdminTasks() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+    <div className="mx-auto max-w-5xl space-y-6 rounded-2xl p-6 dark:bg-gray-800">
       <div>
         <h1 className="text-2xl font-bold text-white">
           Gerenciamento de Tarefas
