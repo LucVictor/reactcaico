@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { routes } from "./routes";
 import ProtectedRoute from "./pages/protect";
 import { useAuthStore } from "./pages/authStore";
+import { ThemeEffects } from "./theme/ThemeEffects";
 
 function App() {
   const checkToken = useAuthStore.getState().checkTokenValidity;
@@ -9,6 +10,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <ThemeEffects />
       <Routes>
         {routes.map(({ path, element, protected: isProtected, adminOnly }) => {
           const routeElement = isProtected ? (

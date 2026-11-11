@@ -1,10 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR" data-theme="natal">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Estoque Caicó</title>
+    <script>
+      // Aplica o tema festivo antes da primeira pintura para evitar "flash".
+      (function () {
+        var stored;
+        try {
+          stored = window.localStorage.getItem("caico:festive-theme");
+        } catch (error) {
+          stored = null;
+        }
+        var valid =
+          stored === "natal" || stored === "ano-novo" || stored === "none";
+        document.documentElement.dataset.theme = valid ? stored : "natal";
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

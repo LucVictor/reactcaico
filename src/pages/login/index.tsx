@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../authStore"; // 🔹 importar a store
 import { API_URL } from "../../api";
+import { ThemeLogo } from "../../theme/ThemeLogo";
+import { HolidayBadge } from "../../theme/HolidayBadge";
 import "./styles.css";
 
 interface UserProps {
@@ -53,10 +55,11 @@ export default function Login() {
   return (
     <div className="dark min-h-screen flex-col">
       <div className="background-animado"></div>
-      <div className="dark flex h-100 min-h-screen items-center justify-center align-middle">
-        <div className="flex flex-col gap-1 rounded-2xl border border-solid border-gray-700 bg-gray-700 p-5 text-center align-middle text-white opacity-90">
-          <div>
-            <img src={caicoLogo} className="mx-auto" />
+      <div className="dark relative z-10 flex h-100 min-h-screen items-center justify-center align-middle">
+        <div className="theme-card flex flex-col gap-1 rounded-2xl border border-solid border-gray-700 bg-gray-700 p-5 text-center align-middle text-white opacity-90">
+          <div className="flex flex-col items-center gap-2">
+            <ThemeLogo src={caicoLogo} />
+            <HolidayBadge />
           </div>
 
           <div>

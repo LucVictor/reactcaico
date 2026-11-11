@@ -74,6 +74,7 @@ export default function Tasks() {
 
   const [openCreate, setOpenCreate] = useState(false);
   const [newQuantity, setNewQuantity] = useState<number>(0);
+  const [newDays, setNewDays] = useState<number>(30);
   const [createLoading, setCreateLoading] = useState(false);
   const [createMessage, setCreateMessage] = useState<{
     type: "error" | "success";
@@ -172,18 +173,27 @@ export default function Tasks() {
       });
       return;
     }
+    if (!newDays || newDays < 1) {
+      setCreateMessage({
+        type: "error",
+        text: "Informe a janela de dias (maior ou igual a 1).",
+      });
+      return;
+    }
 
     setCreateLoading(true);
     try {
       const res = await api.post("/task/", {
         quantity: newQuantity,
         branch_code: branchCode,
+        days: newDays,
       });
       setCreateMessage({
         type: "success",
         text: `Task #${res.data.task.id} criada com ${res.data.items.length} produto(s) para conferir.`,
       });
       setNewQuantity(0);
+      setNewDays(30);
       fetchTasks();
       setTimeout(() => setOpenCreate(false), 1500);
     } catch (err) {
@@ -319,7 +329,8 @@ export default function Tasks() {
           <div className="flex flex-col gap-4">
             <p className="text-sm text-gray-500">
               Serão sorteados <b>{newQuantity || 0}</b> produtos pendentes de
-              conferência na filial <b>{branchCode || "—"}</b>.
+              conferência na filial <b>{branchCode || "—"}</b>, sem verificação
+              nos últimos <b>{newDays || 0}</b> dia(s).
             </p>
             <Label htmlFor="quantidade-nova">Quantidade de itens</Label>
             <TextInput
@@ -329,6 +340,18 @@ export default function Tasks() {
               value={newQuantity || ""}
               onChange={(e) => setNewQuantity(Number(e.target.value))}
             />
+            <Label htmlFor="dias-nova">Dias sem verificação</Label>
+            <TextInput
+              id="dias-nova"
+              type="number"
+              min={1}
+              value={newDays || ""}
+              onChange={(e) => setNewDays(Number(e.target.value))}
+            />
+            <p className="text-xs text-gray-500">
+              Produtos conferidos nessa filial dentro desse período não serão
+              sorteados. Padrão: 30 dias.
+            </p>
             {createMessage && (
               <p
                 className={`text-sm ${

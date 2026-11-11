@@ -19,6 +19,9 @@ import api from "../api";
 import "./styles.css";
 import avatar from "../static/user.png";
 import WarningBar from "./warning";
+import { ThemeLogo } from "../theme/ThemeLogo";
+import { ThemeMenuItems } from "../theme/ThemeMenuItems";
+import { HolidayBadge } from "../theme/HolidayBadge";
 
 interface paginaProps {
   pagina: ReactNode;
@@ -98,8 +101,9 @@ export default function Layout({ pagina }: paginaProps) {
       <div className="background-animado"></div>
       <div className="top-bar relative z-20 flex h-16 items-center justify-between p-2">
         {/* LOGO */}
-        <div>
-          <img src={caicoLogo} width={60} />
+        <div className="flex items-center gap-3">
+          <ThemeLogo src={caicoLogo} width={60} />
+          <HolidayBadge className="theme-holiday-badge--header" />
         </div>
 
         {/* NAV */}
@@ -223,6 +227,8 @@ export default function Layout({ pagina }: paginaProps) {
                 </DropdownItem>
               </>
             )}
+
+            <ThemeMenuItems />
 
             <DropdownDivider />
 

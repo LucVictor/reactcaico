@@ -1,0 +1,1410 @@
+/* ==========================================================================
+   Tema festivo modular — Natal & Ano Novo
+   --------------------------------------------------------------------------
+   O tema ativo é definido em <html data-theme="natal | ano-novo | none">.
+   Cada variação fica isolada pelo seletor `html[data-theme="..."]`, então
+   novos temas podem ser adicionados sem afetar os existentes.
+
+   Organização:
+   1. Tokens de cor por tema
+   2. Base (fundo, seleção, scrollbar)
+   3. Top bar e navegação
+   4. Botões
+   5. Campos de formulário
+   6. Menus e dropdowns
+   7. Cards, superfícies e tabelas
+   8. Modais
+   9. Efeitos e decorações (Natal)
+   10. Efeitos e decorações (Ano Novo)
+   11. Logo, cartões e acessibilidade
+   ========================================================================== */
+
+/* ==========================================================================
+   1. TOKENS
+   ========================================================================== */
+
+html[data-theme="natal"] {
+  --theme-primary: #14532d;
+  --theme-primary-2: #166534;
+  --theme-primary-3: #15803d;
+  --theme-primary-hover: #991b1b;
+  --theme-primary-hover-2: #dc2626;
+  --theme-accent: #f6c445;
+  --theme-accent-strong: #eab308;
+  --theme-accent-soft: rgba(246, 196, 69, 0.22);
+  --theme-surface: rgba(7, 30, 19, 0.86);
+  --theme-surface-alt: rgba(11, 44, 28, 0.9);
+  --theme-surface-strong: rgba(13, 51, 33, 0.95);
+  --theme-border: rgba(34, 197, 94, 0.3);
+  --theme-border-accent: rgba(246, 196, 69, 0.42);
+  --theme-text: #f3fbf5;
+  --theme-text-muted: #a9c9b5;
+  --theme-cream: #f8f3e3;
+  --theme-glow: rgba(34, 197, 94, 0.4);
+  --theme-danger: #e63946;
+  --theme-danger-soft: rgba(230, 57, 70, 0.2);
+  --theme-gradient: linear-gradient(
+    135deg,
+    #14532d 0%,
+    #166534 58%,
+    #15803d 100%
+  );
+  --theme-gradient-hover: linear-gradient(
+    135deg,
+    #7f1d1d 0%,
+    #b91c1c 50%,
+    #dc2626 100%
+  );
+  --theme-panel-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(34, 197, 94, 0.12),
+    0 0 26px rgba(34, 197, 94, 0.08);
+  --theme-backdrop: rgba(3, 14, 8, 0.82);
+  --theme-menu-hover: linear-gradient(
+    90deg,
+    rgba(185, 28, 28, 0.38),
+    rgba(185, 28, 28, 0.08)
+  );
+  --theme-row-hover: rgba(185, 28, 28, 0.22);
+
+  /* aliases usados pelos efeitos natalinos */
+  --festive-red: #e63946;
+  --festive-green: #22c55e;
+  --festive-gold: #f1c40f;
+  --festive-glow: rgba(34, 197, 94, 0.65);
+  --festive-soft-glow: rgba(230, 57, 70, 0.22);
+}
+
+html[data-theme="ano-novo"] {
+  --theme-primary: #172554;
+  --theme-primary-2: #1e3a8a;
+  --theme-primary-3: #1d4ed8;
+  --theme-primary-hover: #854d0e;
+  --theme-primary-hover-2: #ca8a04;
+  --theme-accent: #facc15;
+  --theme-accent-strong: #eab308;
+  --theme-accent-soft: rgba(250, 204, 21, 0.2);
+  --theme-surface: rgba(10, 16, 34, 0.88);
+  --theme-surface-alt: rgba(15, 23, 42, 0.92);
+  --theme-surface-strong: rgba(19, 29, 52, 0.95);
+  --theme-border: rgba(250, 204, 21, 0.24);
+  --theme-border-accent: rgba(250, 204, 21, 0.4);
+  --theme-text: #f8f6ec;
+  --theme-text-muted: #b8c0d5;
+  --theme-cream: #fdf6dc;
+  --theme-glow: rgba(250, 204, 21, 0.35);
+  --theme-danger: #f43f5e;
+  --theme-danger-soft: rgba(244, 63, 94, 0.16);
+  --theme-gradient: linear-gradient(
+    135deg,
+    #172554 0%,
+    #1e3a8a 58%,
+    #1d4ed8 100%
+  );
+  --theme-gradient-hover: linear-gradient(
+    135deg,
+    #854d0e 0%,
+    #a16207 50%,
+    #ca8a04 100%
+  );
+  --theme-panel-shadow:
+    0 18px 44px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(250, 204, 21, 0.1),
+    0 0 26px rgba(250, 204, 21, 0.08);
+  --theme-backdrop: rgba(4, 7, 16, 0.84);
+  --theme-menu-hover: linear-gradient(
+    90deg,
+    rgba(250, 204, 21, 0.22),
+    rgba(250, 204, 21, 0.04)
+  );
+  --theme-row-hover: rgba(250, 204, 21, 0.14);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   2. BASE
+   ========================================================================== */
+
+html[data-theme="natal"] body {
+  background:
+    radial-gradient(90% 60% at 50% -10%, #0d3a23 0%, transparent 62%),
+    radial-gradient(70% 50% at 100% 100%, #3b0a10 0%, transparent 65%), #04120b;
+}
+
+html[data-theme="ano-novo"] body {
+  background:
+    radial-gradient(90% 60% at 50% -10%, #172554 0%, transparent 62%),
+    radial-gradient(70% 50% at 100% 100%, #3f2b06 0%, transparent 65%), #050912;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) ::selection {
+  background: var(--theme-accent);
+  color: #08130d;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) {
+  scrollbar-color: var(--theme-accent) var(--theme-surface);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  ::-webkit-scrollbar-track {
+  background: var(--theme-surface);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  ::-webkit-scrollbar-thumb {
+  border: 2px solid var(--theme-surface);
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    var(--theme-primary-2),
+    var(--theme-primary-hover)
+  );
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  ::-webkit-scrollbar-thumb:hover {
+  background: var(--theme-accent);
+}
+
+/* ==========================================================================
+   3. TOP BAR E NAVEGAÇÃO
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) .top-bar {
+  border-bottom: 1px solid var(--theme-border-accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--theme-primary) 88%, black),
+    color-mix(in srgb, var(--theme-primary) 62%, transparent)
+  );
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="natal"] .top-bar::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  left: 0;
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    #b91c1c 0 14px,
+    #f8fafc 14px 28px
+  );
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  .top-bar
+  button:not([aria-label]):not(:has(img)) {
+  color: var(--theme-cream);
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--theme-primary-2) 84%, black),
+    color-mix(in srgb, var(--theme-primary) 92%, black)
+  );
+  box-shadow:
+    0 0 0 1px var(--theme-border-accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  .top-bar
+  button:not([aria-label]):not(:has(img)):hover:not(:disabled) {
+  color: #fff;
+  background-image: var(--theme-gradient-hover);
+  box-shadow:
+    0 0 0 1px var(--theme-accent),
+    0 0 16px var(--theme-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  .top-bar
+  [data-testid="flowbite-avatar"] {
+  box-shadow:
+    0 0 0 2px var(--theme-accent),
+    0 0 16px var(--theme-glow);
+}
+
+/* Em telas estreitas a navegação rola dentro do próprio grupo. */
+@media (max-width: 1200px) {
+  html:is([data-theme="natal"], [data-theme="ano-novo"])
+    .top-bar
+    > div:last-child {
+    min-width: 0;
+  }
+
+  html:is([data-theme="natal"], [data-theme="ano-novo"])
+    .top-bar
+    [role="group"] {
+    max-width: calc(100vw - 170px);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  html:is([data-theme="natal"], [data-theme="ano-novo"])
+    .top-bar
+    [role="group"]::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   4. BOTÕES
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button:not([aria-label]):not(:has(img)) {
+  color: var(--theme-text);
+  border-color: var(--theme-border-accent);
+  background-color: var(--theme-primary);
+  background-image: var(--theme-gradient);
+  box-shadow:
+    0 0 0 1px var(--theme-border-accent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 4px 14px rgba(0, 0, 0, 0.22);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition:
+    background-image 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    color 0.2s ease;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button:not([aria-label]):not(:has(img)):hover:not(:disabled) {
+  color: #fff;
+  border-color: var(--theme-accent);
+  background-image: var(--theme-gradient-hover);
+  box-shadow:
+    0 0 0 1px var(--theme-accent),
+    0 0 18px var(--theme-glow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button:not([aria-label]):not(:has(img)):active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button:not([aria-label]):not(:has(img)):focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button:not([aria-label]):not(:has(img)):disabled {
+  color: var(--theme-text-muted);
+  border-color: var(--theme-border);
+  background-image: none;
+  background-color: var(--theme-surface-alt);
+  box-shadow: none;
+  filter: saturate(0.55);
+  opacity: 0.65;
+}
+
+/* Preserva a leitura de ações destrutivas e de sucesso. */
+html[data-theme="natal"] button[class~="bg-red-600"],
+html[data-theme="natal"] button[class~="bg-red-500"] {
+  background-image: linear-gradient(135deg, #7f1d1d, #dc2626);
+}
+
+html[data-theme="natal"] button[class~="bg-green-600"],
+html[data-theme="natal"] button[class~="bg-green-500"] {
+  background-image: linear-gradient(135deg, #14532d, #16a34a);
+}
+
+html[data-theme="ano-novo"] button[class~="bg-red-600"],
+html[data-theme="ano-novo"] button[class~="bg-red-500"] {
+  background-image: linear-gradient(135deg, #881337, #e11d48);
+}
+
+/* Botões de contorno mantêm o caráter "outline" em vez do degradê. */
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-red-700"]:not(:disabled),
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-red-600"]:not(:disabled) {
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.7);
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-red-700"]:not(:disabled):hover,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-red-600"]:not(:disabled):hover {
+  color: #fff;
+  border-color: #f87171;
+  background-color: #b91c1c;
+  background-image: linear-gradient(135deg, #7f1d1d, #dc2626);
+  box-shadow:
+    0 0 0 1px rgba(248, 113, 113, 0.55),
+    0 0 16px rgba(230, 57, 70, 0.4);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-primary-700"]:not(:disabled),
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-primary-600"]:not(:disabled) {
+  color: var(--theme-accent);
+  border-color: var(--theme-border-accent);
+  background-color: transparent;
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-primary-700"]:not(:disabled):hover,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  button[class~="border-primary-600"]:not(:disabled):hover {
+  color: var(--theme-cream);
+  border-color: var(--theme-accent);
+  background-color: var(--theme-primary-2);
+  background-image: var(--theme-gradient);
+  box-shadow: 0 0 16px var(--theme-glow);
+}
+
+/* ==========================================================================
+   5. CAMPOS DE FORMULÁRIO
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="file"]
+  ),
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  select,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  textarea {
+  color: var(--theme-text);
+  border-color: var(--theme-border);
+  background-color: var(--theme-surface-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="file"]
+  ):focus,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  select:focus,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  textarea:focus {
+  border-color: var(--theme-accent);
+  box-shadow:
+    0 0 0 3px var(--theme-accent-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input::placeholder,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  textarea::placeholder {
+  color: var(--theme-text-muted);
+  opacity: 0.8;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f6c445'%3E%3Cpath d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 0.75em 0.75em;
+}
+
+html[data-theme="natal"] :is(.dark, .dark *) select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f6c445'%3E%3Cpath d='M4.22 6.22a.75.75 0 0 1 1.06 0L8 8.94l2.72-2.72a.75.75 0 1 1 1.06 1.06l-3.25 3.25a.75.75 0 0 1-1.06 0L4.22 7.28a.75.75 0 0 1 0-1.06Z'/%3E%3C/svg%3E");
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input[type="checkbox"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input[type="radio"] {
+  accent-color: var(--theme-accent);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input[type="checkbox"]:focus,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input[type="radio"]:focus {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: 2px;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  input[type="file"]::file-selector-button {
+  color: var(--theme-cream);
+  border: 1px solid var(--theme-border-accent);
+  border-radius: 0.5rem;
+  background: var(--theme-gradient);
+}
+
+/* ==========================================================================
+   6. MENUS E DROPDOWNS
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) [role="menu"] {
+  overflow: hidden;
+  border: 1px solid var(--theme-border-accent);
+  border-radius: 0.9rem;
+  background: linear-gradient(
+    180deg,
+    var(--theme-surface-strong),
+    var(--theme-surface)
+  );
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.55),
+    0 0 24px var(--theme-glow);
+  backdrop-filter: blur(12px);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) [role="menu"] > ul {
+  padding: 0.35rem;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [role="menu"]
+  > ul
+  > div[class~="px-4"] {
+  color: var(--theme-accent);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [role="menu"]
+  > ul
+  > div[class~="h-px"] {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--theme-border-accent),
+    transparent
+  );
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [role="menuitem"]
+  button:not([aria-label]):not(:has(img)) {
+  margin: 0.05rem 0.15rem;
+  color: var(--theme-text);
+  border-color: transparent;
+  border-radius: 0.55rem;
+  background-image: none;
+  background-color: transparent;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [role="menuitem"]
+  button:not([aria-label]):not(:has(img)):hover,
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [role="menuitem"]
+  button:not([aria-label]):not(:has(img)):focus {
+  color: #fff;
+  background-color: transparent;
+  background-image: var(--theme-menu-hover);
+  box-shadow: inset 3px 0 0 var(--theme-accent);
+}
+
+html[data-theme="natal"] [role="menuitem"] button:hover,
+html[data-theme="natal"] [role="menuitem"] button:focus {
+  color: #fff;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [role="menuitem"]
+  button:not([aria-label]):not(:has(img)):focus-visible {
+  outline: 2px solid var(--theme-accent);
+  outline-offset: -2px;
+}
+
+/* ==========================================================================
+   7. CARDS, SUPERFÍCIES E TABELAS
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-900"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-800"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-700"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-600"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="bg-gray-900"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="bg-gray-800"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="bg-gray-700"] {
+  background-color: var(--theme-surface);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="dark:border-gray-700"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="dark:border-gray-600"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="border-gray-700"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="border-gray-600"] {
+  border-color: var(--theme-border);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="dark:text-gray-400"],
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [class~="dark:text-gray-300"] {
+  color: var(--theme-text-muted);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"]) :is(.dark, .dark *) h1,
+html:is([data-theme="natal"], [data-theme="ano-novo"]) :is(.dark, .dark *) h2 {
+  color: var(--theme-cream);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  [data-testid="flowbite-card"] {
+  border-color: var(--theme-border);
+  box-shadow: var(--theme-panel-shadow);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-900"]:not([role="menu"]):is(
+    [class~="shadow"],
+    [class~="shadow-sm"],
+    [class~="shadow-md"],
+    [class~="shadow-lg"],
+    [class~="shadow-xl"]
+  ),
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-800"]:not([role="menu"]):is(
+    [class~="shadow"],
+    [class~="shadow-sm"],
+    [class~="shadow-md"],
+    [class~="shadow-lg"],
+    [class~="shadow-xl"]
+  ),
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  div[class~="dark:bg-gray-700"]:not([role="menu"]):is(
+    [class~="shadow"],
+    [class~="shadow-sm"],
+    [class~="shadow-md"],
+    [class~="shadow-lg"],
+    [class~="shadow-xl"]
+  ) {
+  border-color: var(--theme-border);
+  box-shadow: var(--theme-panel-shadow);
+}
+
+/* Tabelas */
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  table
+  thead
+  th {
+  color: var(--theme-cream);
+  border-bottom: 1px solid var(--theme-border-accent);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--theme-primary-2) 78%, black),
+    color-mix(in srgb, var(--theme-primary) 90%, black)
+  );
+  letter-spacing: 0.05em;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  table
+  tbody
+  tr {
+  background-color: var(--theme-surface);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  table
+  tbody
+  tr:nth-child(even) {
+  background-color: var(--theme-surface-alt);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  table
+  tbody
+  tr:hover {
+  background-color: var(--theme-row-hover);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  :is(.dark, .dark *)
+  table
+  tbody
+  td {
+  border-color: var(--theme-border);
+}
+
+/* ==========================================================================
+   8. MODAIS
+   ========================================================================== */
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [data-testid="modal-overlay"] {
+  background-color: var(--theme-backdrop);
+  backdrop-filter: blur(3px);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [data-testid="modal-overlay"]
+  > div
+  > div {
+  overflow: hidden;
+  border: 1px solid var(--theme-border-accent);
+  border-radius: 0.9rem;
+  background-color: var(--theme-surface-strong);
+  background-image: linear-gradient(
+    180deg,
+    var(--theme-surface-strong),
+    var(--theme-surface)
+  );
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.6),
+    0 0 34px var(--theme-glow);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [data-testid="modal-overlay"]
+  h3 {
+  color: var(--theme-cream);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [data-testid="modal-overlay"]
+  button[aria-label] {
+  color: var(--theme-text-muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+html:is([data-theme="natal"], [data-theme="ano-novo"])
+  [data-testid="modal-overlay"]
+  button[aria-label]:hover {
+  color: var(--theme-accent);
+}
+
+/* ==========================================================================
+   9. NATAL — EFEITOS E DECORAÇÕES
+   ========================================================================== */
+
+.theme-effects {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Auréola de cor no fundo */
+.fx-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 50% at 12% 0%, var(--theme-glow), transparent 70%),
+    radial-gradient(
+      45% 40% at 88% 8%,
+      var(--theme-danger-soft),
+      transparent 70%
+    ),
+    radial-gradient(
+      50% 45% at 50% 100%,
+      var(--theme-accent-soft),
+      transparent 70%
+    );
+  animation: fx-aurora-pulse 12s ease-in-out infinite alternate;
+}
+
+@keyframes fx-aurora-pulse {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0.9;
+    transform: scale(1.04);
+  }
+}
+
+/* Neve em três profundidades */
+.fx-snow {
+  position: fixed;
+  inset: -60% 0 0 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.72;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.95) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.75) 1.5px, transparent 2.2px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.55) 2px, transparent 2.9px);
+  background-size:
+    70px 70px,
+    110px 110px,
+    160px 160px;
+  animation: fx-snow-fall 18s linear infinite;
+  will-change: transform;
+}
+
+.fx-snow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.7;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.85) 1.2px, transparent 1.9px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.6) 2.2px, transparent 3.2px);
+  background-size:
+    130px 130px,
+    240px 240px;
+  animation: fx-snow-drift 26s linear infinite;
+}
+
+@keyframes fx-snow-fall {
+  from {
+    transform: translate3d(0, -50%, 0);
+  }
+  to {
+    transform: translate3d(-28px, 0, 0);
+  }
+}
+
+@keyframes fx-snow-drift {
+  from {
+    transform: translate3d(18px, 0, 0);
+  }
+  to {
+    transform: translate3d(-36px, 0, 0);
+  }
+}
+
+/* Banco de neve no rodapé */
+.fx-snowbank {
+  position: fixed;
+  right: -2%;
+  bottom: -14px;
+  left: -2%;
+  z-index: 4;
+  height: 84px;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    radial-gradient(50% 100% at 10% 100%, #fff 0 38%, transparent 40%),
+    radial-gradient(42% 100% at 38% 100%, #f8fafc 0 46%, transparent 48%),
+    radial-gradient(55% 100% at 72% 100%, #fff 0 40%, transparent 42%),
+    radial-gradient(38% 100% at 96% 100%, #f8fafc 0 44%, transparent 46%);
+  filter: blur(1px);
+}
+
+/* Fio de luzes no topo */
+.fx-garland {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  height: 40px;
+  padding: 0 10px;
+  pointer-events: none;
+}
+
+.fx-garland::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: -2%;
+  left: -2%;
+  height: 18px;
+  border-top: 2px solid rgba(34, 197, 94, 0.8);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.35);
+}
+
+.fx-garland__bulb {
+  position: relative;
+  width: 8px;
+  height: 12px;
+  margin-top: 8px;
+  border-radius: 50% 50% 45% 45%;
+  background: var(--bulb-color);
+  box-shadow: 0 0 8px 2px var(--bulb-color);
+  opacity: 0.85;
+  transform: translateY(var(--bulb-drop, 0));
+  animation: fx-bulb-twinkle 2.6s ease-in-out infinite alternate;
+  animation-delay: var(--bulb-delay, 0s);
+}
+
+.fx-garland__bulb::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 2px;
+  background: #334155;
+  transform: translateX(-50%);
+}
+
+@keyframes fx-bulb-twinkle {
+  from {
+    opacity: 0.45;
+    filter: brightness(0.9);
+  }
+  to {
+    opacity: 1;
+    filter: brightness(1.35);
+  }
+}
+
+/* Árvore de Natal no canto */
+.fx-tree {
+  position: fixed;
+  bottom: 10px;
+  left: 16px;
+  z-index: 6;
+  width: 92px;
+  height: 138px;
+  pointer-events: none;
+  opacity: 0.92;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
+}
+
+.fx-tree__layer {
+  position: absolute;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 0 6px rgba(34, 197, 94, 0.25));
+}
+
+.fx-tree__layer--1 {
+  bottom: 18px;
+  border-right: 42px solid transparent;
+  border-bottom: 56px solid #14532d;
+  border-left: 42px solid transparent;
+}
+
+.fx-tree__layer--2 {
+  bottom: 55px;
+  border-right: 32px solid transparent;
+  border-bottom: 48px solid #166534;
+  border-left: 32px solid transparent;
+}
+
+.fx-tree__layer--3 {
+  bottom: 90px;
+  border-right: 22px solid transparent;
+  border-bottom: 40px solid #15803d;
+  border-left: 22px solid transparent;
+}
+
+.fx-tree__trunk {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 10px;
+  height: 20px;
+  border-radius: 2px;
+  background: #78350f;
+  transform: translateX(-50%);
+}
+
+.fx-tree__star {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  color: var(--theme-accent);
+  font-size: 1.35rem;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(246, 196, 69, 0.9);
+  transform: translateX(-50%);
+  animation: fx-star-pulse 1.6s ease-in-out infinite alternate;
+}
+
+.fx-tree__light {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--bulb-color);
+  box-shadow: 0 0 7px 2px var(--bulb-color);
+  animation: fx-bulb-twinkle 1.8s ease-in-out infinite alternate;
+  animation-delay: var(--bulb-delay, 0s);
+}
+
+@keyframes fx-star-pulse {
+  from {
+    opacity: 0.65;
+    transform: translateX(-50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.18);
+  }
+}
+
+/* Saudação natalina */
+.fx-greeting {
+  position: fixed;
+  right: 22px;
+  bottom: 18px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.72);
+  color: #fde68a;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 20px rgba(250, 204, 21, 0.25);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+  animation:
+    fx-greeting-in 0.8s ease-out both,
+    fx-greeting-glow 3s ease-in-out 1s infinite alternate;
+}
+
+html[data-theme="natal"] .fx-greeting {
+  border-color: rgba(230, 57, 70, 0.55);
+  color: var(--theme-cream);
+  background: linear-gradient(
+    135deg,
+    rgba(127, 29, 29, 0.82),
+    rgba(9, 45, 27, 0.86)
+  );
+  box-shadow:
+    0 0 18px rgba(230, 57, 70, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+@keyframes fx-greeting-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fx-greeting-glow {
+  from {
+    box-shadow: 0 0 12px var(--theme-accent-soft);
+  }
+  to {
+    box-shadow: 0 0 26px var(--theme-glow);
+  }
+}
+
+.fx-greeting__spark {
+  color: var(--theme-accent);
+  animation: fx-spark 1.8s ease-in-out infinite alternate;
+}
+
+.fx-greeting__spark:last-child {
+  animation-delay: 0.6s;
+}
+
+@keyframes fx-spark {
+  from {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* ==========================================================================
+   10. ANO NOVO — EFEITOS
+   ========================================================================== */
+
+.fx-stars {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(250, 204, 21, 0.8) 1.5px, transparent 2.2px);
+  background-size:
+    210px 210px,
+    320px 320px;
+  animation: fx-stars-twinkle 5s ease-in-out infinite alternate;
+}
+
+@keyframes fx-stars-twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 0.65;
+  }
+}
+
+.fx-fireworks {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.fx-firework {
+  position: absolute;
+  top: var(--fw-y);
+  left: var(--fw-x);
+  width: 0;
+  height: 0;
+  transform: scale(var(--fw-scale, 1));
+}
+
+.fx-firework span {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px;
+  border-radius: 50%;
+  background: var(--fw-color);
+  box-shadow: 0 0 8px 2px var(--fw-color);
+  opacity: 0;
+  animation: fx-firework-burst 4s cubic-bezier(0.22, 0.61, 0.36, 1)
+    var(--fw-delay, 0s) infinite;
+}
+
+@keyframes fx-firework-burst {
+  0%,
+  58% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateX(0) scale(0.3);
+  }
+  62% {
+    opacity: 1;
+    transform: rotate(var(--particle-angle)) translateX(8px) scale(1);
+  }
+  80% {
+    opacity: 0.85;
+  }
+  92%,
+  100% {
+    opacity: 0;
+    transform: rotate(var(--particle-angle)) translateX(88px) scale(0.35);
+  }
+}
+
+/* ==========================================================================
+   11. LOGO, CARTÕES E BADGE FESTIVO
+   ========================================================================== */
+
+.theme-logo {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.theme-logo img {
+  display: block;
+  border-radius: 50%;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+html[data-theme="natal"] .theme-logo img {
+  border: 3px solid var(--festive-red);
+  box-shadow: 0 0 14px 3px var(--festive-glow);
+  animation: fx-logo-glow 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes fx-logo-glow {
+  from {
+    box-shadow: 0 0 10px 2px rgba(230, 57, 70, 0.7);
+  }
+  to {
+    box-shadow: 0 0 20px 6px rgba(34, 197, 94, 0.85);
+  }
+}
+
+html[data-theme="ano-novo"] .theme-logo img {
+  border: 3px solid var(--theme-accent);
+  box-shadow: 0 0 16px 3px var(--theme-glow);
+}
+
+.theme-logo__hat,
+.theme-logo__sparkle {
+  display: none;
+}
+
+html[data-theme="natal"] .theme-logo__hat {
+  position: absolute;
+  top: -38%;
+  right: -20%;
+  display: block;
+  width: 46%;
+  aspect-ratio: 1;
+  background: url("../static/santa-hat.png") center / contain no-repeat;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  transform: rotate(16deg);
+  pointer-events: none;
+}
+
+html[data-theme="ano-novo"] .theme-logo__sparkle {
+  position: absolute;
+  top: -18%;
+  right: -22%;
+  display: block;
+  color: var(--theme-accent);
+  font-size: 1.25rem;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(250, 204, 21, 0.9);
+  animation: fx-spark 1.6s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+/* Badge "Feliz Natal" / "Feliz Ano Novo" */
+.theme-holiday-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.75rem;
+  border: 1px solid var(--theme-border-accent);
+  border-radius: 999px;
+  color: var(--theme-cream);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  background: linear-gradient(
+    135deg,
+    var(--theme-danger-soft),
+    color-mix(in srgb, var(--theme-primary) 75%, transparent)
+  );
+  box-shadow:
+    0 0 16px var(--theme-accent-soft),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="none"] .theme-holiday-badge {
+  display: none;
+}
+
+.theme-holiday-badge__icon {
+  font-size: 0.95rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px var(--theme-accent-soft));
+  animation: fx-badge-wobble 3s ease-in-out infinite;
+}
+
+/* No header o selo só aparece quando há espaço para a navegação. */
+.theme-holiday-badge--header {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .theme-holiday-badge--header {
+    display: inline-flex;
+  }
+}
+
+@keyframes fx-badge-wobble {
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(1);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.08);
+  }
+}
+
+/* Cartão de login / cartões com classe theme-card */
+html[data-theme="natal"] .theme-card {
+  position: relative;
+  border-color: rgba(230, 57, 70, 0.5);
+  background-color: var(--theme-surface-strong);
+  background-image:
+    radial-gradient(
+      90% 60% at 50% 0%,
+      rgba(34, 197, 94, 0.16),
+      transparent 70%
+    ),
+    linear-gradient(180deg, rgba(13, 51, 33, 0.96), rgba(7, 30, 19, 0.96));
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(34, 197, 94, 0.2),
+    0 0 28px var(--festive-soft-glow);
+}
+
+html[data-theme="natal"] .theme-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 5px;
+  border-radius: 1rem 1rem 0 0;
+  background: repeating-linear-gradient(
+    45deg,
+    #b91c1c 0 10px,
+    #f8fafc 10px 20px
+  );
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+html[data-theme="natal"] .theme-card::after {
+  content: "";
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  width: 180px;
+  height: 70px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(246, 196, 69, 0.18),
+    transparent 70%
+  );
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+html[data-theme="ano-novo"] .theme-card {
+  border-color: rgba(250, 204, 21, 0.5);
+  background-color: var(--theme-surface-strong);
+  background-image:
+    radial-gradient(
+      90% 60% at 50% 0%,
+      rgba(250, 204, 21, 0.12),
+      transparent 70%
+    ),
+    linear-gradient(180deg, rgba(19, 29, 52, 0.96), rgba(10, 16, 34, 0.96));
+  box-shadow:
+    0 18px 50px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(250, 204, 21, 0.15),
+    0 0 28px var(--theme-accent-soft);
+}
+
+/* ==========================================================================
+   12. ACESSIBILIDADE E IMPRESSÃO
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .fx-tree {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-aurora,
+  .fx-snow,
+  .fx-snow::before,
+  .fx-garland__bulb,
+  .fx-tree__star,
+  .fx-tree__light,
+  .fx-stars,
+  .fx-greeting,
+  .fx-greeting__spark,
+  .theme-logo img,
+  .theme-logo__sparkle,
+  .theme-holiday-badge__icon {
+    animation: none !important;
+  }
+
+  .fx-firework {
+    display: none;
+  }
+}
+
+@media print {
+  .theme-effects,
+  .theme-holiday-badge {
+    display: none !important;
+  }
+
+  html[data-theme] body {
+    background: #fff !important;
+  }
+}

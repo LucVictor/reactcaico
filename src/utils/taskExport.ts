@@ -308,17 +308,19 @@ export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; color: #000; margin: 0; padding: 0; }
   .sheet { max-width: 190mm; margin: 0 auto; }
-  h1 { font-size: 18px; margin: 0 0 4px; }
-  .meta { font-size: 11px; color: #333; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .meta { font-size: 12px; color: #333; margin-bottom: 12px; }
   .meta strong { color: #000; }
-  table { width: 100%; border-collapse: collapse; font-size: 10px; }
-  th, td { border: 1px solid #999; padding: 5px 4px; text-align: center; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #999; padding: 6px 4px; text-align: center; }
   th { background: #eee; font-weight: bold; }
   td.prod { text-align: left; }
   tr:nth-child(even) td { background: #f7f7f7; }
-  .footer { margin-top: 14px; font-size: 10px; color: #333; display: flex; justify-content: space-between; }
+  .footer { margin-top: 14px; font-size: 11px; color: #333; display: flex; justify-content: space-between; }
+  .note { margin-top: 12px; font-size: 11px; color: #333; }
+  .note div + div { margin-top: 3px; }
   .sign { margin-top: 28px; display: flex; gap: 24px; }
-  .sign div { flex: 1; border-top: 1px solid #000; padding-top: 4px; font-size: 10px; text-align: center; }
+  .sign div { flex: 1; border-top: 1px solid #000; padding-top: 4px; font-size: 11px; text-align: center; }
   @media print {
     .no-print { display: none; }
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -341,20 +343,24 @@ export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
         <th style="width:28px">#</th>
         <th style="width:70px">Código</th>
         <th>Produto</th>
-        <th style="width:60px">Qtd Est.</th>
-        <th style="width:60px">Qtd Sist.</th>
+        <th style="width:60px">Qtd Est.*</th>
+        <th style="width:60px">Qtd Sist.*</th>
         <th style="width:60px">Qtd Real</th>
         <th style="width:55px">Dif.</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
+    <div class="note">
+      <div>* Qtd Est. é uma quantidade estática, atualizada manualmente, que pode estar diferente do estoque no sistema (ERP) da empresa.</div>
+      <div>* Qtd Sist. deve ser preenchida conforme a quantidade do sistema no momento do ajuste.</div>
+    </div>
     <div class="footer">
       <span>Documento gerado pelo sistema de conferência.</span>
       <span>Página A4 • retrato</span>
     </div>
     <div class="sign">
-      <div>Conferente (nome e assinatura)</div>
-      <div>Responsável (nome e assinatura)</div>
+      <div>Conferente (nome ou assinatura)</div>
+      <div>Responsável pelo ajuste (nome ou assinatura)</div>
       <div>Data: ____ / ____ / ________</div>
     </div>
   </div>

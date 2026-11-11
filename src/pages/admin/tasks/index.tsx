@@ -112,6 +112,7 @@ export default function AdminTasks() {
   const [genUserId, setGenUserId] = useState("");
   const [genQuantity, setGenQuantity] = useState<number>(0);
   const [genBranch, setGenBranch] = useState<number>(0);
+  const [genDays, setGenDays] = useState<number>(30);
   const [genLoading, setGenLoading] = useState(false);
   const [genFeedback, setGenFeedback] = useState<Feedback>(null);
   const [generated, setGenerated] = useState<{
@@ -178,6 +179,13 @@ export default function AdminTasks() {
       setGenFeedback({ type: "error", text: "Selecione a filial." });
       return;
     }
+    if (!genDays || genDays < 1) {
+      setGenFeedback({
+        type: "error",
+        text: "Informe a janela de dias (maior ou igual a 1).",
+      });
+      return;
+    }
 
     setGenLoading(true);
     try {
@@ -185,6 +193,7 @@ export default function AdminTasks() {
         user_id: Number(genUserId),
         quantity: genQuantity,
         branch_code: Number(genBranch),
+        days: genDays,
       });
       setGenerated(res.data);
       setGenFeedback({
@@ -192,6 +201,7 @@ export default function AdminTasks() {
         text: `Task #${res.data.task.id} criada para ${res.data.task.user_name}.`,
       });
       setGenQuantity(0);
+      setGenDays(30);
       fetchAdminTasks();
     } catch (err) {
       setGenFeedback({
@@ -453,7 +463,7 @@ export default function AdminTasks() {
                 ))}
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <Label htmlFor="gen-quantidade">Quantidade</Label>
                 <TextInput
@@ -479,7 +489,21 @@ export default function AdminTasks() {
                   ))}
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="gen-dias">Dias sem verificação</Label>
+                <TextInput
+                  id="gen-dias"
+                  type="number"
+                  min={1}
+                  value={genDays || ""}
+                  onChange={(e) => setGenDays(Number(e.target.value))}
+                />
+              </div>
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-300">
+              Produtos conferidos na filial dentro desse período não serão
+              sorteados. Padrão: 30 dias.
+            </p>
             <Button onClick={handleGenerate} disabled={genLoading}>
               {genLoading ? <Spinner size="sm" /> : "Gerar Tarefa"}
             </Button>
