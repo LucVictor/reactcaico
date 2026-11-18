@@ -52,7 +52,6 @@ interface GeneratedItem {
   name: string;
   price: string;
   last_verification: string | null;
-  stock_quantity: number | string | null;
 }
 
 interface AdminTaskProps {
@@ -76,7 +75,6 @@ interface TaskItemProps {
   quantity_real: number | null;
   difference: number | null;
   cost_total: number | null;
-  stock_quantity: number | string | null;
   created_date: string;
 }
 
@@ -198,7 +196,7 @@ export default function AdminTasks() {
       setGenerated(res.data);
       setGenFeedback({
         type: "success",
-        text: `Task #${res.data.task.id} criada para ${res.data.task.user_name}.`,
+        text: `Tarefa #${res.data.task.id} criada para ${res.data.task.user_name}.`,
       });
       setGenQuantity(0);
       setGenDays(30);
@@ -206,7 +204,7 @@ export default function AdminTasks() {
     } catch (err) {
       setGenFeedback({
         type: "error",
-        text: getErrorMessage(err, "Erro ao gerar task."),
+        text: getErrorMessage(err, "Erro ao gerar tarefa."),
       });
     } finally {
       setGenLoading(false);
@@ -248,7 +246,7 @@ export default function AdminTasks() {
       setCustomResult(res.data);
       setCustomFeedback({
         type: "success",
-        text: `Task #${res.data.task.id} atribuída com ${res.data.items.length} produto(s).`,
+        text: `Tarefa #${res.data.task.id} atribuída com ${res.data.items.length} produto(s).`,
       });
       setCustomCodes("");
       fetchAdminTasks();
@@ -273,7 +271,7 @@ export default function AdminTasks() {
     } catch (err) {
       setViewFeedback({
         type: "error",
-        text: getErrorMessage(err, "Erro ao buscar os itens da task."),
+        text: getErrorMessage(err, "Erro ao buscar os itens da tarefa."),
       });
     } finally {
       setViewLoading(false);
@@ -285,7 +283,7 @@ export default function AdminTasks() {
     if (!taskId || taskId <= 0) {
       setViewFeedback({
         type: "error",
-        text: "Informe um ID válido de task.",
+        text: "Informe um ID válido de tarefa.",
       });
       return;
     }
@@ -301,14 +299,14 @@ export default function AdminTasks() {
       setDeleteFeedback({
         type: "success",
         text:
-          res.data?.message || `Task #${deleteTarget.id} excluída com sucesso.`,
+          res.data?.message || `Tarefa #${deleteTarget.id} excluída com sucesso.`,
       });
       setDeleteTarget(null);
       fetchAdminTasks();
     } catch (err) {
       setDeleteFeedback({
         type: "error",
-        text: getErrorMessage(err, "Erro ao excluir a task."),
+        text: getErrorMessage(err, "Erro ao excluir a tarefa."),
       });
       setDeleteTarget(null);
     } finally {
@@ -366,11 +364,11 @@ export default function AdminTasks() {
 
         {tasksLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Spinner aria-label="Carregando tasks..." size="xl" />
+            <Spinner aria-label="Carregando tarefas..." size="xl" />
           </div>
         ) : adminTasks.length === 0 ? (
           <p className="py-6 text-center text-gray-500 dark:text-gray-300">
-            Nenhuma task encontrada.
+            Nenhuma tarefa encontrada.
           </p>
         ) : (
           <Table hoverable className="text-center">
@@ -590,11 +588,11 @@ export default function AdminTasks() {
       {/* Consulta de itens por ID */}
       <Card className="shadow-md">
         <h2 className="mb-3 text-lg font-bold text-gray-800 dark:text-white">
-          Consultar Itens de uma Task
+          Consultar Itens de uma Tarefa
         </h2>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
           <div className="w-full sm:max-w-xs">
-            <Label htmlFor="view-id">ID da Task</Label>
+            <Label htmlFor="view-id">ID da Tarefa</Label>
             <TextInput
               id="view-id"
               type="number"
@@ -618,7 +616,7 @@ export default function AdminTasks() {
         <Card className="shadow-md">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              Task #{generated.task.id} gerada
+              Tarefa #{generated.task.id} gerada
             </h2>
             <Badge color={generated.task.completed ? "success" : "warning"}>
               {generated.task.completed ? "Concluída" : "Pendente"}
@@ -646,7 +644,6 @@ export default function AdminTasks() {
               <TableRow>
                 <TableHeadCell>Código</TableHeadCell>
                 <TableHeadCell>Produto</TableHeadCell>
-                <TableHeadCell>Qtd Estoque</TableHeadCell>
                 <TableHeadCell>Última Verificação</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -655,14 +652,6 @@ export default function AdminTasks() {
                 <TableRow key={item.id} className="bg-white dark:bg-gray-800">
                   <TableCell>{item.code}</TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>
-                    {item.stock_quantity !== null &&
-                    item.stock_quantity !== undefined
-                      ? (Number(item.stock_quantity) || 0).toLocaleString(
-                          "pt-BR",
-                        )
-                      : "—"}
-                  </TableCell>
                   <TableCell>
                     {item.last_verification
                       ? new Date(item.last_verification).toLocaleDateString(
@@ -675,7 +664,7 @@ export default function AdminTasks() {
             </TableBody>
           </Table>
           <p className="mt-3 text-xs text-gray-500">
-            Para conferir, use a task #{generated.task.id} na página de consulta
+            Para conferir, use a tarefa #{generated.task.id} na página de consulta
             acima ou no app do operador.
           </p>
         </Card>
@@ -686,7 +675,7 @@ export default function AdminTasks() {
         <Card className="shadow-md">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              Task #{customResult.task.id} atribuída
+              Tarefa #{customResult.task.id} atribuída
             </h2>
             <Badge color={customResult.task.completed ? "success" : "warning"}>
               {customResult.task.completed ? "Concluída" : "Pendente"}
@@ -713,7 +702,6 @@ export default function AdminTasks() {
               <TableRow>
                 <TableHeadCell>Código</TableHeadCell>
                 <TableHeadCell>Produto</TableHeadCell>
-                <TableHeadCell>Qtd Estoque</TableHeadCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -721,14 +709,6 @@ export default function AdminTasks() {
                 <TableRow key={item.id} className="bg-white dark:bg-gray-800">
                   <TableCell>{item.code}</TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>
-                    {item.stock_quantity !== null &&
-                    item.stock_quantity !== undefined
-                      ? (Number(item.stock_quantity) || 0).toLocaleString(
-                          "pt-BR",
-                        )
-                      : "—"}
-                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -742,10 +722,10 @@ export default function AdminTasks() {
         onClose={() => setDeleteTarget(null)}
         size="md"
       >
-        <ModalHeader>Excluir Task #{deleteTarget?.id}?</ModalHeader>
+        <ModalHeader>Excluir Tarefa #{deleteTarget?.id}?</ModalHeader>
         <ModalBody>
           <p className="text-gray-700 dark:text-gray-300">
-            A task de <b>{deleteTarget?.user_name}</b>, seus itens e os
+            A tarefa de <b>{deleteTarget?.user_name}</b>, seus itens e os
             registros de verificação vinculados serão removidos. Os produtos
             voltarão a ser candidatos para novas conferências na filial.
           </p>
@@ -781,7 +761,7 @@ export default function AdminTasks() {
         onClose={() => setViewModalOpen(false)}
         size="5xl"
       >
-        <ModalHeader>Itens da Task #{viewTaskId}</ModalHeader>
+        <ModalHeader>Itens da Tarefa #{viewTaskId}</ModalHeader>
         <ModalBody>
           {viewItems.length === 0 ? (
             <p className="text-gray-500">Nenhum item encontrado.</p>
@@ -815,7 +795,6 @@ export default function AdminTasks() {
                     <TableHeadCell>ID</TableHeadCell>
                     <TableHeadCell>Código</TableHeadCell>
                     <TableHeadCell>Produto</TableHeadCell>
-                    <TableHeadCell>Qtd Estoque</TableHeadCell>
                     <TableHeadCell>Qtd Sistema</TableHeadCell>
                     <TableHeadCell>Qtd Real</TableHeadCell>
                     <TableHeadCell>Diferença</TableHeadCell>
@@ -830,14 +809,6 @@ export default function AdminTasks() {
                       <TableCell>{item.id}</TableCell>
                       <TableCell>{item.code || "—"}</TableCell>
                       <TableCell>{item.product_name}</TableCell>
-                      <TableCell>
-                        {item.stock_quantity !== null &&
-                        item.stock_quantity !== undefined
-                          ? (Number(item.stock_quantity) || 0).toLocaleString(
-                              "pt-BR",
-                            )
-                          : "—"}
-                      </TableCell>
                       <TableCell>
                         {item.quantity_system !== null
                           ? (Number(item.quantity_system) || 0).toLocaleString(

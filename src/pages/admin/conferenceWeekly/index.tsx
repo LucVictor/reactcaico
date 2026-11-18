@@ -564,7 +564,7 @@ export default function AdminWeeklyConference() {
                       Conferências
                     </TableHeadCell>
                     <TableHeadCell className="px-4 py-3 text-center">
-                      Tasks
+                      Tarefas
                     </TableHeadCell>
                     <TableHeadCell className="px-4 py-3 text-center">
                       Negativos

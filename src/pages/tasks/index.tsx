@@ -44,7 +44,6 @@ interface TaskItemProps {
   quantity_real: number | null;
   difference: number | null;
   cost_total: number | null;
-  stock_quantity: number | null;
   created_date: string;
 }
 
@@ -125,7 +124,6 @@ export default function Tasks() {
           ...i,
           quantity_system: toNumber(i.quantity_system),
           quantity_real: toNumber(i.quantity_real),
-          stock_quantity: toNumber(i.stock_quantity),
         })),
       );
     } catch (err) {
@@ -190,7 +188,7 @@ export default function Tasks() {
       });
       setCreateMessage({
         type: "success",
-        text: `Task #${res.data.task.id} criada com ${res.data.items.length} produto(s) para conferir.`,
+        text: `Tarefa #${res.data.task.id} criada com ${res.data.items.length} produto(s) para conferir.`,
       });
       setNewQuantity(0);
       setNewDays(30);
@@ -199,7 +197,7 @@ export default function Tasks() {
     } catch (err) {
       setCreateMessage({
         type: "error",
-        text: getErrorMessage(err, "Erro ao criar task. Tente novamente."),
+        text: getErrorMessage(err, "Erro ao criar tarefa. Tente novamente."),
       });
     } finally {
       setCreateLoading(false);
@@ -269,7 +267,7 @@ export default function Tasks() {
       ) : tasks.length === 0 ? (
         <Card className="p-6 text-center">
           <p className="text-gray-500 dark:text-gray-300">
-            Nenhuma task encontrada. Clique em "Nova Tarefa" para gerar.
+            Nenhuma tarefa encontrada. Clique em "Nova Tarefa" para gerar.
           </p>
         </Card>
       ) : (
@@ -280,7 +278,7 @@ export default function Tasks() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-lg font-bold text-gray-800 dark:text-white">
-                      Task #{task.id}
+                      Tarefa #{task.id}
                     </p>
                     <p className="text-sm text-gray-500">
                       {new Date(task.created_date).toLocaleDateString("pt-BR")}
@@ -378,7 +376,7 @@ export default function Tasks() {
       {/* Modal: Itens da task */}
       <Modal show={selectedTask !== null} onClose={handleCloseTask} size="5xl">
         <ModalHeader>
-          Itens da Task #{selectedTask?.id}{" "}
+          Itens da Tarefa #{selectedTask?.id}{" "}
           {selectedTask?.completed ? "(Concluída)" : "(Em andamento)"}
         </ModalHeader>
         <ModalBody>
@@ -412,7 +410,6 @@ export default function Tasks() {
                   <TableRow>
                     <TableHeadCell>Código</TableHeadCell>
                     <TableHeadCell>Produto</TableHeadCell>
-                    <TableHeadCell>Qtd Estoque</TableHeadCell>
                     <TableHeadCell>Qtd Sistema</TableHeadCell>
                     <TableHeadCell>Qtd Real</TableHeadCell>
                     <TableHeadCell>Diferença</TableHeadCell>
@@ -426,14 +423,6 @@ export default function Tasks() {
                     >
                       <TableCell>{item.code || "—"}</TableCell>
                       <TableCell>{item.product_name}</TableCell>
-                      <TableCell>
-                        {item.stock_quantity !== null &&
-                        item.stock_quantity !== undefined
-                          ? (Number(item.stock_quantity) || 0).toLocaleString(
-                              "pt-BR",
-                            )
-                          : "—"}
-                      </TableCell>
                       <TableCell>
                         {selectedTask?.completed ? (
                           (item.quantity_system ?? "—")

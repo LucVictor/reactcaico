@@ -13,7 +13,6 @@ export interface TaskExportItem {
   code?: string | null;
   product_name?: string;
   name?: string;
-  stock_quantity?: number | string | null;
   quantity_system?: number | string | null;
   quantity_real?: number | string | null;
   difference?: number | string | null;
@@ -22,14 +21,18 @@ export interface TaskExportItem {
 interface NormalizedItem {
   code: string;
   productName: string;
-  stockQuantity: string;
   quantitySystem: string;
   quantityReal: string;
   difference: string;
 }
 
-function toDisplay(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === "") return "—";
+function toDisplay(
+  value: number | string | null | undefined,
+  blankWhenEmpty = false,
+): string {
+  if (value === null || value === undefined || value === "") {
+    return blankWhenEmpty ? "" : "—";
+  }
   const n = Number(value);
   if (Number.isNaN(n)) return String(value);
   return n.toLocaleString("pt-BR");
@@ -46,14 +49,16 @@ function toCsvCell(value: number | string | null | undefined): string {
   return text;
 }
 
-function normalizeItems(items: TaskExportItem[]): NormalizedItem[] {
+function normalizeItems(
+  items: TaskExportItem[],
+  blankMissingNumbers = false,
+): NormalizedItem[] {
   return items.map((item) => ({
     code: item.code ?? "—",
     productName: item.product_name ?? item.name ?? "—",
-    stockQuantity: toDisplay(item.stock_quantity),
-    quantitySystem: toDisplay(item.quantity_system),
-    quantityReal: toDisplay(item.quantity_real),
-    difference: toDisplay(item.difference),
+    quantitySystem: toDisplay(item.quantity_system, blankMissingNumbers),
+    quantityReal: toDisplay(item.quantity_real, blankMissingNumbers),
+    difference: toDisplay(item.difference, blankMissingNumbers),
   }));
 }
 
@@ -82,14 +87,7 @@ export function exportTaskToExcel(
   meta: TaskExportMeta,
 ): void {
   const rows = normalizeItems(items);
-  const header = [
-    "Código",
-    "Produto",
-    "Qtd Estoque",
-    "Qtd Sistema",
-    "Qtd Real",
-    "Diferença",
-  ];
+  const header = ["Código", "Produto", "Qtd Sistema", "Qtd Real", "Diferença"];
 
   const escapeCsv = (value: string): string => {
     const needsQuotes = /[";\n\r]/.test(value);
@@ -99,7 +97,7 @@ export function exportTaskToExcel(
 
   const lines: string[] = [];
   lines.push(
-    `Task #${meta.id}${meta.userName ? ` - ${toCsvCell(meta.userName)}` : ""}`,
+    `Tarefa #${meta.id}${meta.userName ? ` - ${toCsvCell(meta.userName)}` : ""}`,
   );
   lines.push(
     `Filial: ${meta.branchCode ?? "—"};Data: ${formatDate(meta.createdDate)};Gerado em: ${formatDateTimeNow()}`,
@@ -108,14 +106,7 @@ export function exportTaskToExcel(
   lines.push(header.map(escapeCsv).join(";"));
   for (const r of rows) {
     lines.push(
-      [
-        r.code,
-        r.productName,
-        r.stockQuantity,
-        r.quantitySystem,
-        r.quantityReal,
-        r.difference,
-      ]
+      [r.code, r.productName, r.quantitySystem, r.quantityReal, r.difference]
         .map(escapeCsv)
         .join(";"),
     );
@@ -123,7 +114,7 @@ export function exportTaskToExcel(
 
   const csv = "﻿" + lines.join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, `task_${meta.id}_produtos.csv`);
+  saveAs(blob, `tarefa_${meta.id}_produtos.csv`);
 }
 
 /** Exporta para PDF A4 usando jsPDF (sem dependências extras). */
@@ -131,7 +122,7 @@ export function exportTaskToPdf(
   items: TaskExportItem[],
   meta: TaskExportMeta,
 ): void {
-  const rows = normalizeItems(items);
+  const rows = normalizeItems(items, true);
   const doc = new jsPDF({ unit: "mm", format: "a4" });
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -139,8 +130,8 @@ export function exportTaskToPdf(
   const margin = 12;
   const usableWidth = pageWidth - margin * 2;
 
-  // Colunas: Código | Produto | Est. | Sist. | Real | Dif.
-  const colWidths = [22, usableWidth - 22 - 18 * 4, 18, 18, 18, 18];
+  // Colunas: Código | Produto | Sist. | Real | Dif.
+  const colWidths = [22, usableWidth - 22 - 18 * 3, 18, 18, 18];
   const colX: number[] = [];
   let acc = margin;
   for (const w of colWidths) {
@@ -148,7 +139,7 @@ export function exportTaskToPdf(
     acc += w;
   }
 
-  const title = `Listagem de Produtos - Task #${meta.id}`;
+  const title = `Listagem de Produtos - Tarefa #${meta.id}`;
   let cursorY = 16;
 
   const drawHeader = (page: number, totalPagesPlaceholder = "") => {
@@ -180,7 +171,7 @@ export function exportTaskToPdf(
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
-    const headers = ["Código", "Produto", "Estoque", "Sistema", "Real", "Dif."];
+    const headers = ["Código", "Produto", "Sistema", "Real", "Dif."];
     const h = 7;
     doc.rect(margin, y, usableWidth, h, "F");
     headers.forEach((head, i) => {
@@ -214,7 +205,7 @@ export function exportTaskToPdf(
     if (y + rowHeight > pageHeight - 15) {
       doc.setFontSize(8);
       doc.text(
-        `Pág. ${page} — Task #${meta.id}`,
+        `Pág. ${page} — Tarefa #${meta.id}`,
         pageWidth - margin,
         pageHeight - 8,
         { align: "right" },
@@ -241,13 +232,12 @@ export function exportTaskToPdf(
     const cells = [
       row.code,
       "",
-      row.stockQuantity,
       row.quantitySystem,
       row.quantityReal,
       row.difference,
     ];
     cells.forEach((cell, i) => {
-      if (i === 1) return; // produto usa múltiplas linhas
+      if (i === 1 || cell === "") return; // produto usa múltiplas linhas; células vazias ficam em branco para preenchimento manual
       const alignRight = i >= 2;
       const textX = alignRight ? colX[i] + colWidths[i] - 1.5 : colX[i] + 1.5;
       doc.text(cell, textX, y + 4.5, {
@@ -262,35 +252,34 @@ export function exportTaskToPdf(
   });
 
   if (rows.length === 0) {
-    doc.text("Nenhum produto nesta task.", margin, y + 8);
+    doc.text("Nenhum produto nesta tarefa.", margin, y + 8);
   }
 
   doc.setFontSize(8);
   doc.text(
-    `Total de itens: ${rows.length}  •  Pág. ${page} — Task #${meta.id}`,
+    `Total de itens: ${rows.length}  •  Pág. ${page} — Tarefa #${meta.id}`,
     margin,
     pageHeight - 8,
   );
 
-  doc.save(`task_${meta.id}_produtos.pdf`);
+  doc.save(`tarefa_${meta.id}_produtos.pdf`);
 }
 
-/** Abre janela de impressão A4 com a listagem da task. */
+/** Abre janela de impressão A4 com a listagem da tarefa. */
 export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
-  const rows = normalizeItems(items);
+  const rows = normalizeItems(items, true);
   const janela = window.open("", "_blank");
   if (!janela) return;
 
   const rowsHtml =
     rows.length === 0
-      ? `<tr><td colspan="7" style="text-align:center;padding:16px;">Nenhum produto nesta task.</td></tr>`
+      ? `<tr><td colspan="6" style="text-align:center;padding:16px;">Nenhum produto nesta tarefa.</td></tr>`
       : rows
           .map(
             (r, i) => `<tr>
               <td>${i + 1}</td>
               <td>${escapeHtml(r.code)}</td>
               <td class="prod">${escapeHtml(r.productName)}</td>
-              <td>${escapeHtml(r.stockQuantity)}</td>
               <td>${escapeHtml(r.quantitySystem)}</td>
               <td>${escapeHtml(r.quantityReal)}</td>
               <td>${escapeHtml(r.difference)}</td>
@@ -302,7 +291,7 @@ export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<title>Task #${escapeHtml(String(meta.id))} - Listagem de Produtos</title>
+<title>Tarefa #${escapeHtml(String(meta.id))} - Listagem de Produtos</title>
 <style>
   @page { size: A4; margin: 12mm 10mm; }
   * { box-sizing: border-box; }
@@ -329,7 +318,7 @@ export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
 </head>
 <body>
   <div class="sheet">
-    <h1>Listagem de Produtos — Task #${escapeHtml(String(meta.id))}</h1>
+    <h1>Listagem de Produtos — Tarefa #${escapeHtml(String(meta.id))}</h1>
     <div class="meta">
       <strong>Filial:</strong> ${escapeHtml(String(meta.branchCode ?? "—"))} &nbsp;•&nbsp;
       <strong>Data:</strong> ${escapeHtml(formatDate(meta.createdDate))} &nbsp;•&nbsp;
@@ -343,16 +332,15 @@ export function printTask(items: TaskExportItem[], meta: TaskExportMeta): void {
         <th style="width:28px">#</th>
         <th style="width:70px">Código</th>
         <th>Produto</th>
-        <th style="width:60px">Qtd Est.*</th>
         <th style="width:60px">Qtd Sist.*</th>
-        <th style="width:60px">Qtd Real</th>
+        <th style="width:60px">Qtd Real.</th>
         <th style="width:55px">Dif.</th>
       </tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
     <div class="note">
-      <div>* Qtd Est. é uma quantidade estática, atualizada manualmente, que pode estar diferente do estoque no sistema (ERP) da empresa.</div>
       <div>* Qtd Sist. deve ser preenchida conforme a quantidade do sistema no momento do ajuste.</div>
+      <div>Campos em branco podem ser preenchidos manualmente após a impressão.</div>
     </div>
     <div class="footer">
       <span>Documento gerado pelo sistema de conferência.</span>

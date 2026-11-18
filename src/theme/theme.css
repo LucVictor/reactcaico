@@ -65,6 +65,15 @@ html[data-theme="natal"] {
     rgba(185, 28, 28, 0.08)
   );
   --theme-row-hover: rgba(185, 28, 28, 0.22);
+  /* Cores derivadas fixas: html2canvas não entende color()/color-mix(). */
+  --theme-topbar-gradient: linear-gradient(
+    180deg,
+    #124928,
+    rgba(20, 83, 45, 0.62)
+  );
+  --theme-topbar-button-gradient: linear-gradient(180deg, #12552c, #124c29);
+  --theme-table-head-gradient: linear-gradient(180deg, #114f29, #124b29);
+  --theme-badge-primary-soft: rgba(20, 83, 45, 0.75);
 
   /* aliases usados pelos efeitos natalinos */
   --festive-red: #e63946;
@@ -116,6 +125,15 @@ html[data-theme="ano-novo"] {
     rgba(250, 204, 21, 0.04)
   );
   --theme-row-hover: rgba(250, 204, 21, 0.14);
+  /* Cores derivadas fixas: html2canvas não entende color()/color-mix(). */
+  --theme-topbar-gradient: linear-gradient(
+    180deg,
+    #14214a,
+    rgba(23, 37, 84, 0.62)
+  );
+  --theme-topbar-button-gradient: linear-gradient(180deg, #193174, #15224d);
+  --theme-table-head-gradient: linear-gradient(180deg, #172d6c, #15214c);
+  --theme-badge-primary-soft: rgba(23, 37, 84, 0.75);
 }
 
 html:is([data-theme="natal"], [data-theme="ano-novo"]) {
@@ -179,11 +197,7 @@ html:is([data-theme="natal"], [data-theme="ano-novo"])
 
 html:is([data-theme="natal"], [data-theme="ano-novo"]) .top-bar {
   border-bottom: 1px solid var(--theme-border-accent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--theme-primary) 88%, black),
-    color-mix(in srgb, var(--theme-primary) 62%, transparent)
-  );
+  background: var(--theme-topbar-gradient);
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.35),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
@@ -210,11 +224,7 @@ html:is([data-theme="natal"], [data-theme="ano-novo"])
   .top-bar
   button:not([aria-label]):not(:has(img)) {
   color: var(--theme-cream);
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--theme-primary-2) 84%, black),
-    color-mix(in srgb, var(--theme-primary) 92%, black)
-  );
+  background-image: var(--theme-topbar-button-gradient);
   box-shadow:
     0 0 0 1px var(--theme-border-accent),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -662,11 +672,7 @@ html:is([data-theme="natal"], [data-theme="ano-novo"])
   th {
   color: var(--theme-cream);
   border-bottom: 1px solid var(--theme-border-accent);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--theme-primary-2) 78%, black),
-    color-mix(in srgb, var(--theme-primary) 90%, black)
-  );
+  background: var(--theme-table-head-gradient);
   letter-spacing: 0.05em;
 }
 
@@ -1260,7 +1266,7 @@ html[data-theme="ano-novo"] .theme-logo__sparkle {
   background: linear-gradient(
     135deg,
     var(--theme-danger-soft),
-    color-mix(in srgb, var(--theme-primary) 75%, transparent)
+    var(--theme-badge-primary-soft)
   );
   box-shadow:
     0 0 16px var(--theme-accent-soft),
