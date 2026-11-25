@@ -185,7 +185,7 @@ function TaskExportReportPage({ adminMode }: { adminMode?: boolean }) {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-6">
+    <div className="mx-auto max-w-4xl p-2 sm:p-6">
       <Card className="shadow-md">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">

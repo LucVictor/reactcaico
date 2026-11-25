@@ -144,7 +144,7 @@ export function IndicadorAvaria() {
   );
 
   return (
-    <div className="m-auto w-full max-w-3xl rounded-xl bg-gray-50 p-6 shadow-md dark:bg-gray-800">
+    <div className="m-auto w-full max-w-3xl rounded-xl bg-gray-50 p-4 shadow-md sm:p-6 dark:bg-gray-800">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100">
           Indicador de Avaria

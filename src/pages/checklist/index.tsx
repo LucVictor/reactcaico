@@ -327,7 +327,7 @@ export default function ChecklistSemana() {
 
   return (
     <div
-      className={`m-5 space-y-6 rounded-2xl bg-gray-800 p-6 opacity-95 ${modoImpressao ? "bg-white" : "print:p-0"}`}
+      className={`m-1 space-y-6 rounded-2xl bg-gray-800 p-3 opacity-95 sm:m-5 sm:p-6 ${modoImpressao ? "bg-white" : "print:p-0"}`}
     >
       {/* CABEÇALHO */}
       {!modoImpressao && (
@@ -376,9 +376,9 @@ export default function ChecklistSemana() {
       {/* TABELA PRINCIPAL */}
       {!loading && semanaSelecionada && checklist.length > 0 && (
         <div className="overflow-x-auto rounded-xl shadow-md dark:bg-gray-800">
-          <Table hoverable striped>
+          <Table hoverable striped className="min-w-[620px]">
             <TableHead className="bg-gray-100 dark:bg-gray-700">
-              <TableHeadCell className="w-48 text-center align-middle">
+              <TableHeadCell className="w-32 text-center align-middle sm:w-48">
                 Tarefa
               </TableHeadCell>
               {diasSemana.map((dia) => (

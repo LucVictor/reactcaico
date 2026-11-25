@@ -161,7 +161,7 @@ export default function CreateTargetConference() {
   }, [targets]);
 
   return (
-    <div className="m-5 flex flex-col gap-8 rounded-2xl p-3 dark:bg-gray-800">
+    <div className="my-2 flex flex-col gap-6 rounded-2xl p-2 sm:m-5 sm:gap-8 sm:p-3 dark:bg-gray-800">
       {/* TOPO: Botão cadastrar e filtro mês */}
       <div className="mb-4 flex flex-col items-center justify-between gap-4 sm:flex-row dark:bg-gray-800">
         <div className="flex items-center gap-2">

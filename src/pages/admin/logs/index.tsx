@@ -213,7 +213,7 @@ const LogsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-2 sm:p-8">
       {/* Filtros */}
       <Card className="mb-6 border border-gray-200 shadow-sm">
         <h1 className="mb-6 text-center text-3xl font-bold text-white">

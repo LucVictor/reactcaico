@@ -7,3 +7,85 @@
 html.dark body {
   background-color: #1f2937; /* gray-900 */
 }
+
+/* ==========================================================================
+   Adaptação para telas de telefone
+   ========================================================================== */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+  max-width: 100%;
+  min-width: 320px;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+@media (max-width: 640px) {
+  /* Nada deve empurrar a página para os lados */
+  main,
+  section {
+    max-width: 100%;
+  }
+
+  /* Tabelas compactas: leitura confortável no celular */
+  table {
+    font-size: 0.75rem;
+  }
+
+  table th,
+  table td {
+    padding: 0.5rem 0.4rem !important;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Modais ocupam a tela, com rolagem interna */
+  [data-testid="modal-overlay"] {
+    padding: 0.5rem;
+  }
+
+  [data-testid="modal-overlay"] > div {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+
+  [data-testid="modal-overlay"] > div > div {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 1rem);
+    overflow-y: auto;
+    border-radius: 0.9rem;
+  }
+
+  button {
+    max-width: 100%;
+  }
+
+  /* Títulos longos quebram em vez de estourar a tela */
+  h1,
+  h2,
+  h3 {
+    overflow-wrap: anywhere;
+  }
+
+  /* Decorações do tema ficam menores */
+  .fx-greeting {
+    right: 8px;
+    bottom: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+}

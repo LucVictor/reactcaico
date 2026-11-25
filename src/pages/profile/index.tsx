@@ -78,7 +78,7 @@ function ProfileComponente() {
   };
 
   return (
-    <div className="margin-5 m-auto flex w-fit max-w-full flex-col gap-4 overflow-x-auto rounded-2xl p-5 opacity-95 dark:bg-gray-800">
+    <div className="m-auto flex w-full max-w-2xl flex-col gap-4 overflow-x-auto rounded-2xl p-4 opacity-95 sm:p-6 dark:bg-gray-800">
       <div className="flex flex-col items-center gap-2 text-center">
         <Avatar
           img={
@@ -94,7 +94,7 @@ function ProfileComponente() {
         </h2>
         <p className="text-gray-500">{user?.email}</p>
 
-        <div className="mt-2 flex gap-2">
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
           <Button color="dark" onClick={() => setOpenModalFoto(true)}>
             Trocar foto
           </Button>
@@ -180,7 +180,7 @@ function ProfileComponente() {
 
 export default function IndexProfile() {
   return (
-    <div className="m-5 w-full max-w-full">
+    <div className="w-full max-w-full px-1 py-2 sm:px-4">
       <ProfileComponente />
     </div>
   );

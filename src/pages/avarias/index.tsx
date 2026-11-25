@@ -21,11 +21,16 @@ import {
 import GraficoAvariasDia from "./grafico";
 import { CadastrarAvaria } from "./cadastrar";
 import api from "../../api";
+import {
+  ApprovalBadge,
+  RejectionNote,
+  type ApprovalInfo,
+} from "../../components/Approval";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
 dayjs.locale("pt-br");
 
-export interface ProdutoAvariaProps {
+export interface ProdutoAvariaProps extends ApprovalInfo {
   id: number;
   product_code: string;
   product_name: string;
@@ -37,6 +42,7 @@ export interface ProdutoAvariaProps {
   shelflife_date: string;
   last_mod: string;
   created_by: string;
+  user_id?: number | null;
   type: number;
   origin: number;
   local: number;
@@ -195,7 +201,7 @@ function TableComponent() {
           <div className="flex w-full max-w-6xl justify-end">
             <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-700 p-3 text-white dark:bg-gray-700">
               <h3 className="mb-2 w-full text-center">Opções:</h3>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap justify-center gap-2">
                 <BotaoRelatorio />
                 <BotaoAvariaFiltro onFiltrar={filtrarAvarias} />
                 <BotaoCadastrar onAtualizar={buscarAvarias} />
@@ -217,6 +223,7 @@ function TableComponent() {
                     <TableHeadCell>Custo</TableHeadCell>
                     <TableHeadCell>Tipo</TableHeadCell>
                     <TableHeadCell>Origem</TableHeadCell>
+                    <TableHeadCell>Aprovação</TableHeadCell>
                     <TableHeadCell>
                       <span className="sr-only">Ações</span>
                     </TableHeadCell>
@@ -232,7 +239,7 @@ function TableComponent() {
                         {formatarData(produto.damaged_date)}
                       </TableCell>
                       <TableCell>{produto.product_code}</TableCell>
-                      <TableCell className="max-w-[400px] overflow-hidden text-ellipsis whitespace-nowrap">
+                      <TableCell className="max-w-[180px] overflow-hidden text-ellipsis sm:max-w-[400px]">
                         {produto.product_name}
                       </TableCell>
                       <TableCell>{produto.quantity}</TableCell>
@@ -243,6 +250,15 @@ function TableComponent() {
                       <TableCell>
                         {origem.find((e) => e.id === produto.origin)?.name ||
                           "-"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col items-center gap-1">
+                          <ApprovalBadge status={produto.approval_status} />
+                          <RejectionNote
+                            item={produto}
+                            className="max-w-[180px]"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="flex gap-1">
                         <BotaoExcluir
@@ -272,7 +288,7 @@ function TableComponent() {
           </div>
 
           {/* Paginação */}
-          <div className="mt-4 flex items-center justify-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <Button
               size="xs"
               color="gray"
@@ -306,13 +322,13 @@ function TableComponent() {
                   <Spinner size="lg" />
                 </div>
               ) : photos.length > 0 ? (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                   {photos.map((photo) => (
                     <div key={photo.id} className="relative">
                       <img
                         src={`${API_URL}${photo.url}`}
                         alt={photo.filename}
-                        className="h-40 w-full rounded object-cover"
+                        className="h-32 w-full rounded object-cover sm:h-40"
                       />
                     </div>
                   ))}

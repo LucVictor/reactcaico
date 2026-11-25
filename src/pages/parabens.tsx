@@ -116,7 +116,7 @@ export default function CongratsRank({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="pointer-events-none fixed inset-0 z-[9999] flex items-start justify-center pt-20"
+      className="pointer-events-none fixed inset-0 z-[9999] flex items-start justify-center overflow-y-auto px-2 pt-6 sm:px-0 sm:pt-20"
     >
       <motion.div
         initial={{ scale: 0.4, y: -100, rotate: -10 }}
@@ -125,7 +125,7 @@ export default function CongratsRank({
         className="pointer-events-auto"
       >
         <div
-          className={`relative m-9 overflow-hidden rounded-3xl border-2 bg-gradient-to-br p-8 text-white shadow-2xl backdrop-blur-2xl ${info.bg} ${info.border}`}
+          className={`relative my-2 w-full overflow-hidden rounded-3xl border-2 bg-gradient-to-br p-5 text-white shadow-2xl backdrop-blur-2xl sm:m-9 sm:w-auto sm:p-8 ${info.bg} ${info.border}`}
           style={{
             boxShadow: `0 0 50px ${info.glow}, inset 0 0 40px rgba(255,255,255,0.15)`,
           }}
@@ -138,7 +138,7 @@ export default function CongratsRank({
             <X className="h-5 w-5" />
           </button>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:gap-6 sm:text-left">
             {/* Ícone principal com animação */}
             <motion.div
               animate={{ y: isPodium ? [-10, -30, -10] : [-6, 6, -6] }}
@@ -157,8 +157,8 @@ export default function CongratsRank({
 
             <div className="flex-1">
               {/* Título com medalha */}
-              <h1 className="flex items-center gap-3 text-3xl font-black tracking-tight">
-                {info.medal && <span className="text-5xl">{info.medal}</span>}
+              <h1 className="flex flex-wrap items-center justify-center gap-3 text-2xl font-black tracking-tight sm:text-3xl">
+                {info.medal && <span className="text-4xl sm:text-5xl">{info.medal}</span>}
                 Parabéns!
                 {position === 1 && (
                   <Crown className="h-10 w-10 animate-pulse text-yellow-200" />

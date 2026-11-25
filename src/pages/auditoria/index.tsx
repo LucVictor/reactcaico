@@ -36,11 +36,11 @@ export default function Auditoria() {
   }
 
   return (
-    <div className="m-auto flex w-3/4 flex-col items-center gap-6 rounded-2xl bg-gray-700 p-8 text-white shadow-xl dark:bg-gray-700">
+    <div className="m-auto flex w-full max-w-3xl flex-col items-center gap-6 rounded-2xl bg-gray-700 p-4 text-white shadow-xl sm:p-8 dark:bg-gray-700">
       <h1 className="text-2xl font-bold tracking-wide">Auditoria de Produto</h1>
 
       {/* área de busca */}
-      <div className="flex w-full max-w-lg gap-3">
+      <div className="flex w-full max-w-lg flex-col gap-3 sm:flex-row">
         <input
           type="text"
           inputMode="numeric"

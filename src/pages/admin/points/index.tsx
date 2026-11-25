@@ -192,7 +192,7 @@ const PointsPagina: React.FC = () => {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-2 sm:p-8">
       <h1 className="mb-6 text-center text-2xl font-bold">Ranking de Pontos</h1>
 
       {/* 🔍 Filtros */}

@@ -19,10 +19,15 @@ import {
   Select,
 } from "flowbite-react";
 import api from "../../api"; // ✅ Importando o modelo de API
+import {
+  ApprovalBadge,
+  RejectionNote,
+  type ApprovalInfo,
+} from "../../components/Approval";
 
 dayjs.locale("pt-br");
 
-export interface ProdutoConferidoProps {
+export interface ProdutoConferidoProps extends ApprovalInfo {
   id: number;
   product_name: string;
   product_code: string;
@@ -32,6 +37,7 @@ export interface ProdutoConferidoProps {
   cost_total?: number | null;
   date_?: string;
   created_by?: string;
+  user_id?: number | null;
   work_conference_id?: number;
   active?: boolean;
 }
@@ -191,6 +197,7 @@ export default function TabelaDinamica({
             <TableHeadCell>Qtd. Físico</TableHeadCell>
             <TableHeadCell>Qtd. Sistema</TableHeadCell>
             <TableHeadCell>Diferença</TableHeadCell>
+            <TableHeadCell>Aprovação</TableHeadCell>
             <TableHeadCell>
               <span className="sr-only">Ações</span>
             </TableHeadCell>
@@ -212,13 +219,19 @@ export default function TabelaDinamica({
                 <TableCell>{p.quantity_system ?? "-"}</TableCell>
                 <TableCell>{p.diference ?? "-"}</TableCell>
                 <TableCell>
+                  <div className="flex flex-col items-center gap-1">
+                    <ApprovalBadge status={p.approval_status} />
+                    <RejectionNote item={p} className="max-w-[180px]" />
+                  </div>
+                </TableCell>
+                <TableCell>
                   <BotaoExcluir produto={p} />
                 </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="py-4 text-center">
+              <TableCell colSpan={8} className="py-4 text-center">
                 Nenhum produto encontrado.
               </TableCell>
             </TableRow>

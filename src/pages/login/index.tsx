@@ -55,8 +55,8 @@ export default function Login() {
   return (
     <div className="dark min-h-screen flex-col">
       <div className="background-animado"></div>
-      <div className="dark relative z-10 flex h-100 min-h-screen items-center justify-center align-middle">
-        <div className="theme-card flex flex-col gap-1 rounded-2xl border border-solid border-gray-700 bg-gray-700 p-5 text-center align-middle text-white opacity-90">
+      <div className="dark relative z-10 flex min-h-screen items-center justify-center px-4 py-8 align-middle">
+        <div className="theme-card flex w-full max-w-sm flex-col gap-1 rounded-2xl border border-solid border-gray-700 bg-gray-700 p-5 text-center align-middle text-white opacity-90 sm:p-6">
           <div className="flex flex-col items-center gap-2">
             <ThemeLogo src={caicoLogo} />
             <HolidayBadge />

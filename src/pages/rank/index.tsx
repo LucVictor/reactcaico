@@ -172,9 +172,9 @@ function PointsComponente() {
 
   /* ---------- CONTEÚDO PRINCIPAL ---------- */
   return (
-    <div className="m-3 rounded-2xl py-8 opacity-98">
-      <div className="mx-auto max-w-7xl rounded-2xl p-2 px-4 opacity-98 dark:bg-gray-800">
-        <h1 className="mb-8 text-center text-3xl font-bold text-gray-800 dark:text-white">
+    <div className="m-1 rounded-2xl py-4 opacity-98 sm:m-3 sm:py-8">
+      <div className="mx-auto max-w-7xl rounded-2xl p-2 opacity-98 sm:px-4 dark:bg-gray-800">
+        <h1 className="mb-6 text-center text-2xl font-bold text-gray-800 sm:mb-8 sm:text-3xl dark:text-white">
           Sistema de Pontos
         </h1>
 

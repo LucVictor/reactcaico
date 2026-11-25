@@ -308,10 +308,10 @@ export default function AdminPointsAnalytics() {
 
   /* ---------- RENDER ---------- */
   return (
-    <div className="m-5 flex flex-col items-center gap-6">
-      <Card className="w-full max-w-7xl bg-white p-6 shadow-md dark:bg-gray-700">
+    <div className="m-1 flex flex-col items-center gap-6 sm:m-5">
+      <Card className="w-full max-w-7xl bg-white p-4 shadow-md sm:p-6 dark:bg-gray-700">
         <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-2xl font-bold text-gray-900 sm:text-3xl dark:text-white">
             Análise por Período (Dois Períodos)
           </h2>
           <Button

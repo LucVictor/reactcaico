@@ -23,8 +23,13 @@ import api from "../../api";
 import { useAuthStore } from "../authStore";
 import { useLocalDeEstoque } from "../localEstoque";
 import TaskExportButtons from "../../components/TaskExportButtons";
+import {
+  ApprovalBadge,
+  RejectionNote,
+  type ApprovalInfo,
+} from "../../components/Approval";
 
-interface TaskProps {
+interface TaskProps extends ApprovalInfo {
   id: number;
   user_id: number;
   user_name: string;
@@ -247,8 +252,8 @@ export default function Tasks() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-5xl p-2 sm:p-6">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">
             Tarefas de Conferência
@@ -284,9 +289,12 @@ export default function Tasks() {
                       {new Date(task.created_date).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
-                  <Badge color={task.completed ? "success" : "warning"}>
-                    {task.completed ? "Concluída" : "Pendente"}
-                  </Badge>
+                  <div className="flex shrink-0 flex-col items-end gap-1">
+                    <Badge color={task.completed ? "success" : "warning"}>
+                      {task.completed ? "Concluída" : "Pendente"}
+                    </Badge>
+                    <ApprovalBadge status={task.approval_status} />
+                  </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -296,6 +304,7 @@ export default function Tasks() {
                     Filial: <b>{task.branch_code}</b>
                   </span>
                 </div>
+                <RejectionNote item={task} className="mt-2" />
                 <div className="mt-4">
                   <Button
                     size="xs"
@@ -405,7 +414,8 @@ export default function Tasks() {
                   />
                 )}
               </div>
-              <Table hoverable className="text-center">
+              <div className="overflow-x-auto">
+              <Table hoverable className="min-w-[560px] text-center">
                 <TableHead>
                   <TableRow>
                     <TableHeadCell>Código</TableHeadCell>
@@ -469,6 +479,7 @@ export default function Tasks() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </>
           )}
 

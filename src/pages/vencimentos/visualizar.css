@@ -1,3 +1,9 @@
 .nome-produto {
   min-width: 400px; /* aumenta conforme necessário */
 }
+
+@media (max-width: 640px) {
+  .nome-produto {
+    min-width: 160px;
+  }
+}

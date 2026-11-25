@@ -77,7 +77,7 @@ export default function TableComponent() {
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-6 p-5 opacity-95">
+    <div className="flex w-full flex-col items-center gap-6 p-2 opacity-95 sm:p-5">
       {/* Cards de informações */}
       <div className="flex w-full flex-col items-center gap-6 md:flex-row md:justify-center">
         <Card className="w-full max-w-sm text-center">

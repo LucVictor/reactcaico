@@ -7,6 +7,8 @@ import Layout from "./pages/layout";
 import Login from "./pages/login/index";
 import Tasks from "./pages/tasks";
 import AdminTasks from "./pages/admin/tasks";
+import AdminAvarias from "./pages/admin/avarias";
+import AdminConferencias from "./pages/admin/conferencias";
 import VisualizarVencimentos from "./pages/vencimentos/visualizar";
 import IndexPoints from "./pages/rank/index";
 import IndexMetas from "./pages/metas";
@@ -89,6 +91,18 @@ export const routes: AppRoute[] = [
   {
     path: "/admin/tasks",
     element: <Layout pagina={<AdminTasks />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/avarias",
+    element: <Layout pagina={<AdminAvarias />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/conferencias",
+    element: <Layout pagina={<AdminConferencias />} />,
     protected: true,
     adminOnly: true,
   },

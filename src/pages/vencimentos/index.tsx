@@ -87,15 +87,15 @@ function TableComponent() {
           <Spinner size="xl" aria-label="Loading..." />
         </div>
       ) : (
-        <div className="flex w-full flex-col items-center justify-start gap-4 p-4">
+        <div className="flex w-full flex-col items-center justify-start gap-4 p-2 sm:p-4">
           {/* Título */}
           <div className="w-fit rounded-2xl p-2 text-center font-extrabold text-white dark:bg-gray-700">
             <h1>Vencimentos</h1>
           </div>
 
           {/* Opções */}
-          <div className="flex w-full justify-end">
-            <div className="mb-4 w-fit flex-col rounded-2xl bg-gray-700 p-2 text-center text-white">
+          <div className="flex w-full justify-center sm:justify-end">
+            <div className="mb-4 w-full max-w-full flex-col rounded-2xl bg-gray-700 p-2 text-center text-white sm:w-fit">
               <h4>Opções:</h4>
               <div className="flex flex-wrap items-center gap-4 p-1 text-white dark:bg-gray-700">
                 <Button
@@ -110,8 +110,8 @@ function TableComponent() {
           </div>
 
           {/* Tabela */}
-          <div className="w-full max-w-6xl rounded-lg border border-gray-600 shadow-sm">
-            <Table className="min-w-full text-center opacity-95">
+          <div className="w-full max-w-6xl overflow-x-auto rounded-lg border border-gray-600 shadow-sm">
+            <Table className="min-w-[720px] text-center opacity-95">
               <TableHead>
                 <TableRow>
                   <TableHeadCell>Código</TableHeadCell>

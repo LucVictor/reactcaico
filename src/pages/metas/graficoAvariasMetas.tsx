@@ -31,7 +31,7 @@ export function GraficoAvarias() {
     .reverse();
 
   return (
-    <div className="m-auto w-full rounded-xl bg-gray-50 p-6 shadow-md dark:bg-gray-800">
+    <div className="m-auto w-full rounded-xl bg-gray-50 p-4 shadow-md sm:p-6 dark:bg-gray-800">
       <h2 className="mb-4 text-center text-xl font-bold text-gray-800 dark:text-gray-100">
         Avarias Últimos 6 Meses (Sim/Não)
       </h2>

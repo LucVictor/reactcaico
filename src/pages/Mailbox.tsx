@@ -119,7 +119,7 @@ export default function Mailbox({ open, onClose }: MailboxProps) {
       <Modal show={open} onClose={onClose} size="lg">
         <ModalHeader>📨 Mensagens</ModalHeader>
         <ModalBody>
-          <div className="mb-2 flex justify-between">
+          <div className="mb-2 flex flex-wrap justify-between gap-2">
             <Button
               color={filter === "todas" ? "blue" : "gray"}
               onClick={() => setFilter("todas")}

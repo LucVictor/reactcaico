@@ -23,6 +23,13 @@ import {
 import api from "../../../api";
 import { useAuthStore } from "../../authStore";
 import TaskExportButtons from "../../../components/TaskExportButtons";
+import {
+  ApprovalActions,
+  ApprovalBadge,
+  RejectionNote,
+  type ApprovalInfo,
+  type ApprovalStatus,
+} from "../../../components/Approval";
 
 interface User {
   id: number;
@@ -54,7 +61,7 @@ interface GeneratedItem {
   last_verification: string | null;
 }
 
-interface AdminTaskProps {
+interface AdminTaskProps extends ApprovalInfo {
   id: number;
   user_id: number;
   user_name: string;
@@ -102,6 +109,9 @@ export default function AdminTasks() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [filterUserId, setFilterUserId] = useState("");
   const [filterCompleted, setFilterCompleted] = useState("");
+  const [filterApproval, setFilterApproval] = useState<ApprovalStatus | "">(
+    "",
+  );
   const [deleteTarget, setDeleteTarget] = useState<AdminTaskProps | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteFeedback, setDeleteFeedback] = useState<Feedback>(null);
@@ -149,6 +159,7 @@ export default function AdminTasks() {
         params: {
           ...(filterUserId ? { user_id: Number(filterUserId) } : {}),
           ...(filterCompleted ? { completed: filterCompleted } : {}),
+          ...(filterApproval ? { approval_status: filterApproval } : {}),
         },
       });
       setAdminTasks(res.data);
@@ -157,7 +168,7 @@ export default function AdminTasks() {
     } finally {
       setTasksLoading(false);
     }
-  }, [filterUserId, filterCompleted]);
+  }, [filterUserId, filterCompleted, filterApproval]);
 
   useEffect(() => {
     fetchAdminTasks();
@@ -290,6 +301,18 @@ export default function AdminTasks() {
     openItems(taskId);
   };
 
+  const decideTask = async (
+    taskId: number,
+    approved: boolean,
+    rejection_reason?: string,
+  ) => {
+    await api.patch(`/task/admin/tasks/${taskId}/approve`, {
+      approved,
+      rejection_reason: approved ? null : rejection_reason,
+    });
+    await fetchAdminTasks();
+  };
+
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
@@ -315,7 +338,7 @@ export default function AdminTasks() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 rounded-2xl p-6 dark:bg-gray-800">
+    <div className="mx-auto max-w-5xl space-y-6 rounded-2xl p-2 sm:p-6 dark:bg-gray-800">
       <div>
         <h1 className="text-2xl font-bold text-white">
           Gerenciamento de Tarefas
@@ -359,6 +382,21 @@ export default function AdminTasks() {
                 <option value="true">Concluídas</option>
               </Select>
             </div>
+            <div className="w-full sm:w-48">
+              <Label htmlFor="filter-aprovacao">Aprovação</Label>
+              <Select
+                id="filter-aprovacao"
+                value={filterApproval}
+                onChange={(e) =>
+                  setFilterApproval(e.target.value as ApprovalStatus | "")
+                }
+              >
+                <option value="">Todas</option>
+                <option value="pending">Pendentes</option>
+                <option value="approved">Aprovadas</option>
+                <option value="rejected">Reprovadas</option>
+              </Select>
+            </div>
           </div>
         </div>
 
@@ -371,7 +409,8 @@ export default function AdminTasks() {
             Nenhuma tarefa encontrada.
           </p>
         ) : (
-          <Table hoverable className="text-center">
+          <div className="overflow-x-auto">
+          <Table hoverable className="min-w-[820px] text-center">
             <TableHead>
               <TableRow>
                 <TableHeadCell>ID</TableHeadCell>
@@ -379,6 +418,7 @@ export default function AdminTasks() {
                 <TableHeadCell>Data</TableHeadCell>
                 <TableHeadCell>Itens</TableHeadCell>
                 <TableHeadCell>Status</TableHeadCell>
+                <TableHeadCell>Aprovação</TableHeadCell>
                 <TableHeadCell>Ações</TableHeadCell>
               </TableRow>
             </TableHead>
@@ -403,27 +443,40 @@ export default function AdminTasks() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-center gap-2">
-                      <Button
-                        size="xs"
-                        color="blue"
-                        onClick={() => openItems(task.id)}
-                      >
-                        Ver Itens
-                      </Button>
-                      <Button
-                        size="xs"
-                        color="failure"
-                        onClick={() => setDeleteTarget(task)}
-                      >
-                        Excluir
-                      </Button>
+                    <div className="flex flex-col items-center gap-1">
+                      <ApprovalBadge status={task.approval_status} />
+                      <RejectionNote item={task} className="max-w-[200px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-center gap-2">
+                      <ApprovalActions
+                        onApprove={() => decideTask(task.id, true)}
+                        onReject={(reason) => decideTask(task.id, false, reason)}
+                      />
+                      <div className="flex flex-wrap items-center justify-center gap-2">
+                        <Button
+                          size="xs"
+                          color="blue"
+                          onClick={() => openItems(task.id)}
+                        >
+                          Ver Itens
+                        </Button>
+                        <Button
+                          size="xs"
+                          color="failure"
+                          onClick={() => setDeleteTarget(task)}
+                        >
+                          Excluir
+                        </Button>
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          </div>
         )}
 
         {deleteFeedback && (

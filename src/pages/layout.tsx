@@ -95,57 +95,63 @@ export default function Layout({ pagina }: paginaProps) {
     fetchMensagens();
   }, []);
 
+  const navItems = [
+    { label: "Vencimentos", path: "/vencimentos" },
+    { label: "Avarias", path: "/avarias" },
+    { label: "Conferências", path: "/conferencias" },
+    { label: "Recebimentos", path: "/recebimento" },
+    { label: "Metas", path: "/metas" },
+    { label: "Pontos", path: "/pontos" },
+    { label: "Checklist", path: "/checklist" },
+    { label: "Tarefas", path: "/tasks" },
+    { label: "Auditoria", path: "/auditoria" },
+  ];
+
   return (
     <div className="dark relative min-h-screen flex-col">
       <WarningBar />
       <div className="background-animado"></div>
-      <div className="top-bar relative z-20 flex h-16 items-center justify-between p-2">
+      <div className="top-bar relative z-20 flex h-16 items-center justify-between gap-2 p-2">
         {/* LOGO */}
-        <div className="flex items-center gap-3">
-          <ThemeLogo src={caicoLogo} width={60} />
+        <div className="flex shrink-0 items-center gap-3">
+          <ThemeLogo src={caicoLogo} width={52} />
           <HolidayBadge className="theme-holiday-badge--header" />
         </div>
 
         {/* NAV */}
-        <div className="flex items-center gap-2">
-          <ButtonGroup>
-            <Button
-              onClick={() => navigate("/vencimentos")}
-              color="alternative"
+        <div className="flex min-w-0 items-center gap-2">
+          {/* Navegação completa (tablet/desktop) */}
+          <div className="hidden xl:block">
+            <ButtonGroup>
+              {navItems.map((item) => (
+                <Button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  color="alternative"
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </ButtonGroup>
+          </div>
+
+          {/* Menu compacto para celular */}
+          <div className="xl:hidden">
+            <Dropdown
+              inline
+              label="Menu"
+              className="max-h-[70vh] overflow-y-auto"
             >
-              Vencimentos
-            </Button>
-            <Button onClick={() => navigate("/avarias")} color="alternative">
-              Avarias
-            </Button>
-            <Button
-              onClick={() => navigate("/conferencias")}
-              color="alternative"
-            >
-              Conferências
-            </Button>
-            <Button
-              onClick={() => navigate("/recebimento")}
-              color="alternative"
-            >
-              Recebimentos
-            </Button>
-            <Button onClick={() => navigate("/metas")} color="alternative">
-              Metas
-            </Button>
-            <Button onClick={() => navigate("/pontos")} color="alternative">
-              Pontos
-            </Button>
-            <Button onClick={() => navigate("/checklist")} color="alternative">
-              Checklist
-            </Button>
-            <Button onClick={() => navigate("/tasks")} color="alternative">
-              Tarefas
-            </Button>
-            <Button onClick={() => navigate("/auditoria")} color="alternative">
-              Auditoria
-            </Button>
-          </ButtonGroup>
+              {navItems.map((item) => (
+                <DropdownItem
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                >
+                  {item.label}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+          </div>
 
           {/* DROPDOWN DO AVATAR */}
           <Dropdown
@@ -222,6 +228,12 @@ export default function Layout({ pagina }: paginaProps) {
                 <DropdownItem onClick={() => navigate("/admin/tasks")}>
                   Adm: Tarefas
                 </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/avarias")}>
+                  Adm: Aprovar Avarias
+                </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/conferencias")}>
+                  Adm: Aprovar Conferências
+                </DropdownItem>
                 <DropdownItem onClick={() => navigate("/task/admin/export")}>
                   Adm: Exportação
                 </DropdownItem>
@@ -241,7 +253,7 @@ export default function Layout({ pagina }: paginaProps) {
       <Mailbox open={messagesOpen} onClose={() => setMessagesOpen(false)} />
 
       {/* CONTEÚDO DA PÁGINA */}
-      <div className="relative z-10 p-4">{pagina}</div>
+      <div className="relative z-10 p-2 sm:p-4">{pagina}</div>
     </div>
   );
 }

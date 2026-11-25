@@ -305,9 +305,9 @@ export default function AdminPoints() {
 
   /* ---------- RENDER ---------- */
   return (
-    <div className="m-5 flex flex-col items-center gap-6">
+    <div className="m-1 flex flex-col items-center gap-6 sm:m-5">
       {/* CABEÇALHO + FILTRO + EXPORTAÇÃO */}
-      <Card className="w-full max-w-4xl bg-white p-6 shadow-md dark:bg-gray-700">
+      <Card className="w-full max-w-4xl bg-white p-4 shadow-md sm:p-6 dark:bg-gray-700">
         <h2 className="mb-4 text-3xl font-bold text-gray-900 dark:text-white">
           Sistema de Pontos — Admin
         </h2>
@@ -363,7 +363,7 @@ export default function AdminPoints() {
 
       {/* RANKING DINÂMICO */}
       {viewMode === "stores" ? (
-        <Card className="w-full bg-gradient-to-br from-teal-50 to-cyan-50 p-6 shadow-lg dark:bg-gray-800 dark:from-teal-900 dark:to-cyan-900">
+        <Card className="w-full bg-gradient-to-br from-teal-50 to-cyan-50 p-4 shadow-lg sm:p-6 dark:bg-gray-800 dark:from-teal-900 dark:to-cyan-900">
           <h3 className="mb-4 text-xl font-semibold text-teal-800 dark:text-teal-100">
             Ranking por Loja (
             {months.find((m) => m.value === selectedMonth)?.label})

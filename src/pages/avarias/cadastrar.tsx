@@ -301,7 +301,7 @@ export function CadastrarAvaria() {
               </Select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button type="button" onClick={() => setIsModalOpen(true)}>
                 Adicionar Fotos
               </Button>
@@ -331,7 +331,7 @@ export function CadastrarAvaria() {
 
                 {/* Previews */}
                 {previews.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                     {previews.map((src, idx) => (
                       <div key={idx} className="relative">
                         <img
