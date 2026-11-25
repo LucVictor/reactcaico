@@ -21,6 +21,20 @@ html.dark body {
   color: #111827;
 }
 
+/* Status "Reprovado" sempre com fundo vermelho, no claro e no escuro */
+.status-rejected {
+  background-color: #dc2626;
+  border: 1px solid #dc2626;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.status-rejected:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+  color: #ffffff;
+}
+
 /* ==========================================================================
    Adaptação para telas de telefone
    ========================================================================== */

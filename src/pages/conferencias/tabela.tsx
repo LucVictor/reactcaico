@@ -205,7 +205,7 @@ export default function TabelaDinamica({
 
       {/* Tabela */}
       <div className="overflow-x-auto">
-        <Table hoverable className="min-w-[860px] text-center text-sm">
+        <Table hoverable className="min-w-[720px] text-center text-sm sm:min-w-full">
           <TableHead>
             <TableRow>
               <TableHeadCell className="whitespace-nowrap">Data</TableHeadCell>
@@ -328,12 +328,7 @@ function BotaoExcluir({ produto }: BotaoExcluirProps) {
 
   return (
     <div className="m-1 flex justify-end">
-      <Button
-        color="failure"
-        size="xs"
-        className="font-semibold"
-        onClick={() => setOpenModal(true)}
-      >
+      <Button color="red" size="xs" outline onClick={() => setOpenModal(true)}>
         Excluir
       </Button>
       <Modal show={openModal} onClose={handleClose}>

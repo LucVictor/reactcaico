@@ -41,6 +41,9 @@ const formatarDecisao = (item: ApprovalInfo) => {
 export function ApprovalBadge({ status }: { status?: ApprovalStatus }) {
   if (!status) return null;
   const meta = STATUS_META[status];
+  if (status === "rejected") {
+    return <Badge className="status-rejected">{meta.label}</Badge>;
+  }
   return <Badge color={meta.color}>{meta.label}</Badge>;
 }
 
@@ -82,7 +85,7 @@ export function ApprovalStatusCell({ item }: { item: ApprovalInfo }) {
       <Button
         size="xs"
         color="failure"
-        className="whitespace-nowrap font-semibold"
+        className="status-rejected whitespace-nowrap"
         onClick={() => setOpen(true)}
         title="Ver motivo da reprovação"
       >

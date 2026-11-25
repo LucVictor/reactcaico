@@ -217,12 +217,7 @@ function BotaoEditar({ produto, onAtualizar }: BotaoEditarProps) {
 
   return (
     <div>
-      <Button
-        color="light"
-        size="xs"
-        className="btn-outline-contrast"
-        onClick={() => setOpenModal(true)}
-      >
+      <Button color="green" size="xs" outline onClick={() => setOpenModal(true)}>
         Editar
       </Button>
       <Modal show={openModal} onClose={handleClose}>
@@ -263,12 +258,7 @@ function BotaoExcluir({ produto, onAtualizar }: BotaoExcluirProps) {
 
   return (
     <div>
-      <Button
-        color="failure"
-        size="xs"
-        className="font-semibold"
-        onClick={() => setOpenModal(true)}
-      >
+      <Button color="red" size="xs" outline onClick={() => setOpenModal(true)}>
         Excluir
       </Button>
       <Modal show={openModal} onClose={handleClose}>
