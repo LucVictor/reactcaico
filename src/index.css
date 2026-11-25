@@ -21,12 +21,43 @@ html.dark body {
   color: #111827;
 }
 
+/* Ações de aprovação com cor garantida (o tema festivo pinta todo botão) */
+.btn-approve {
+  background-color: #16a34a;
+  border: 1px solid #15803d;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.btn-approve:hover {
+  background-color: #15803d;
+  color: #ffffff;
+}
+
+.btn-reject {
+  background-color: #dc2626;
+  border: 1px solid #b91c1c;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.btn-reject:hover {
+  background-color: #b91c1c;
+  color: #ffffff;
+}
+
 /* Status "Reprovado" sempre com fundo vermelho, no claro e no escuro */
 .status-rejected {
   background-color: #dc2626;
   border: 1px solid #dc2626;
   color: #ffffff;
   font-weight: 600;
+}
+
+.status-rejected.badge,
+span.status-rejected {
+  display: inline-flex;
+  align-items: center;
 }
 
 .status-rejected:hover {

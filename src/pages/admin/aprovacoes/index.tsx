@@ -201,8 +201,7 @@ export default function AdminAprovacoes() {
   const conferenciasPagina = conferencias.slice(inicio, fim);
   const tarefasPagina = tarefas.slice(inicio, fim);
 
-  const colunas =
-    tab === "damaged" ? 9 : tab === "conference" ? 10 : 7;
+  const colunas = tab === "damaged" ? 7 : tab === "conference" ? 8 : 7;
 
   const aplicarPeriodo = (dias: number) => {
     setDataFinal(hoje);
@@ -346,18 +345,16 @@ export default function AdminAprovacoes() {
           )}
 
           <div className="overflow-x-auto">
-            <Table hoverable className="min-w-[980px] text-center text-sm">
+            <Table hoverable className="min-w-[640px] text-center text-sm sm:min-w-full">
               <TableHead>
                 <TableRow>
                   {tab === "damaged" && (
                     <>
                       <TableHeadCell>Data</TableHeadCell>
-                      <TableHeadCell>Código</TableHeadCell>
                       <TableHeadCell>Produto</TableHeadCell>
                       <TableHeadCell>Qtd.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
-                      <TableHeadCell>Operador</TableHeadCell>
-                      <TableHeadCell>Filial</TableHeadCell>
+                      <TableHeadCell>Operador / Filial</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -365,13 +362,11 @@ export default function AdminAprovacoes() {
                   {tab === "conference" && (
                     <>
                       <TableHeadCell>Data</TableHeadCell>
-                      <TableHeadCell>Código</TableHeadCell>
                       <TableHeadCell>Produto</TableHeadCell>
-                      <TableHeadCell>Sistema / Real</TableHeadCell>
-                      <TableHeadCell>Diferença</TableHeadCell>
+                      <TableHeadCell>Sist. / Real</TableHeadCell>
+                      <TableHeadCell>Dif.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
-                      <TableHeadCell>Operador</TableHeadCell>
-                      <TableHeadCell>Filial</TableHeadCell>
+                      <TableHeadCell>Operador / Filial</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -418,15 +413,17 @@ export default function AdminAprovacoes() {
                       <TableCell className="whitespace-nowrap">
                         {formatarData(avaria.damaged_date)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {avaria.product_code}
-                      </TableCell>
                       <TableCell>
                         <div
-                          className="mx-auto max-w-[240px] truncate text-left"
-                          title={avaria.product_name}
+                          className="w-[170px] truncate text-left sm:w-[210px]"
+                          title={`${avaria.product_code} - ${avaria.product_name}`}
                         >
-                          {avaria.product_name}
+                          <span className="block text-xs text-gray-500 dark:text-gray-400">
+                            {avaria.product_code}
+                          </span>
+                          <span className="block truncate">
+                            {avaria.product_name}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>{avaria.quantity}</TableCell>
@@ -434,10 +431,14 @@ export default function AdminAprovacoes() {
                         {formatarMoeda(avaria.cost_total)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {avaria.created_by}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {nomeFilial(avaria.local)}
+                        <div className="w-[110px] truncate text-left sm:w-[130px]">
+                          <span className="block truncate">
+                            {avaria.created_by}
+                          </span>
+                          <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                            {nomeFilial(avaria.local)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <ApprovalStatusCell item={avaria} />
@@ -461,15 +462,17 @@ export default function AdminAprovacoes() {
                       <TableCell className="whitespace-nowrap">
                         {formatarData(conferencia.date_)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {conferencia.product_code}
-                      </TableCell>
                       <TableCell>
                         <div
-                          className="mx-auto max-w-[240px] truncate text-left"
-                          title={conferencia.product_name}
+                          className="w-[170px] truncate text-left sm:w-[210px]"
+                          title={`${conferencia.product_code} - ${conferencia.product_name}`}
                         >
-                          {conferencia.product_name}
+                          <span className="block text-xs text-gray-500 dark:text-gray-400">
+                            {conferencia.product_code}
+                          </span>
+                          <span className="block truncate">
+                            {conferencia.product_name}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -489,10 +492,14 @@ export default function AdminAprovacoes() {
                         {formatarMoeda(conferencia.cost_total)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {conferencia.created_by}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {nomeFilial(conferencia.local)}
+                        <div className="w-[110px] truncate text-left sm:w-[130px]">
+                          <span className="block truncate">
+                            {conferencia.created_by}
+                          </span>
+                          <span className="block truncate text-xs text-gray-500 dark:text-gray-400">
+                            {nomeFilial(conferencia.local)}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <ApprovalStatusCell item={conferencia} />

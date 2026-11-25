@@ -168,7 +168,7 @@ export function ApprovalActions({
         <Button
           size={size}
           color="success"
-          className="font-semibold"
+          className="btn-approve"
           disabled={pending !== null}
           onClick={() => run("approve")}
         >
@@ -177,7 +177,7 @@ export function ApprovalActions({
         <Button
           size={size}
           color="failure"
-          className="font-semibold"
+          className="btn-reject"
           disabled={pending !== null}
           onClick={() => {
             setError(null);
@@ -225,7 +225,7 @@ export function ApprovalActions({
         <ModalFooter>
           <Button
             color="failure"
-            className="font-semibold"
+            className="btn-reject"
             disabled={pending !== null || reason.trim().length === 0}
             onClick={() => run("reject")}
           >
