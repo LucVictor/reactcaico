@@ -16,6 +16,7 @@ import {
   TextInput,
 } from "flowbite-react";
 import api from "../../../api";
+import type { ErpMatchRow } from "../external";
 import {
   ApprovalActions,
   ApprovalStatusCell,
@@ -25,53 +26,6 @@ import {
 
 type TabKey = "damaged" | "conference" | "task";
 
-export interface ErpMatch {
-  id: number;
-  record_id: number;
-  record_type: "conference" | "damaged" | "task_item";
-  match_type: "adjustment" | "avaria";
-  product_code: string;
-  product_name: string;
-  num_mov: string;
-  dt_mov?: string | null;
-  quantity?: number | null;
-  cost_unit?: number | null;
-  cod_filial?: string | null;
-  erp_local?: string | null;
-  match_date?: string | null;
-}
-
-export interface ErpMatch {
-  id: number;
-  record_id: number;
-  record_type: "conference" | "damaged" | "task_item";
-  match_type: "adjustment" | "avaria";
-  product_code: string;
-  product_name: string;
-  num_mov: string;
-  dt_mov?: string | null;
-  quantity?: number | null;
-  cost_unit?: number | null;
-  cod_filial?: string | null;
-  erp_local?: string | null;
-  match_date?: string | null;
-}
-
-export interface ErpMatch {
-  id: number;
-  record_id: number;
-  record_type: "conference" | "damaged" | "task_item";
-  match_type: "adjustment" | "avaria";
-  product_code: string;
-  product_name: string;
-  num_mov: string;
-  dt_mov?: string | null;
-  quantity?: number | null;
-  cost_unit?: number | null;
-  cod_filial?: string | null;
-  erp_local?: string | null;
-  match_date?: string | null;
-}
 
 interface Local {
   id: number;
@@ -88,7 +42,7 @@ interface Avaria extends ApprovalInfo {
   created_by: string;
   local: number;
   erp_avaria_match?: boolean;
-  erp_matches?: ErpMatch[];
+  erp_matches?: ErpMatchRow[];
   erp_num_mov?: string | null;
   erp_dt_mov?: string | null;
 }
@@ -105,7 +59,7 @@ interface Conferencia extends ApprovalInfo {
   created_by: string;
   local: number;
   erp_adjustment_match?: boolean;
-  erp_matches?: ErpMatch[];
+  erp_matches?: ErpMatchRow[];
   erp_num_mov?: string | null;
   erp_dt_mov?: string | null;
 }
@@ -120,7 +74,7 @@ interface Tarefa extends ApprovalInfo {
   created_date: string;
   items_confirmed: number;
   erp_adjustment_match?: boolean;
-  erp_matches?: ErpMatch[];
+  erp_matches?: ErpMatchRow[];
   erp_num_mov?: string | null;
   erp_dt_mov?: string | null;
 }
@@ -185,18 +139,29 @@ export default function AdminAprovacoes() {
   const [erpMatchModal, setErpMatchModal] = useState<{
     open: boolean;
     item: Avaria | Conferencia | Tarefa | null;
-    matches: ErpMatch[];
+    matches: ErpMatchRow[];
   }>({ open: false, item: null, matches: [] });
-  const [erpMatchModal, setErpMatchModal] = useState<{
-    open: boolean;
-    item: Avaria | Conferencia | Tarefa | null;
-    matches: ErpMatch[];
-  }>({ open: false, item: null, matches: [] });
-  const [erpMatchModal, setErpMatchModal] = useState<{
-    open: boolean;
-    item: Avaria | Conferencia | Tarefa | null;
-    matches: ErpMatch[];
-  }>({ open: false, item: null, matches: [] });
+
+  const abrirErpMatchModal = (item: Avaria | Conferencia | Tarefa) => {
+    setErpMatchModal({
+      open: true,
+      item,
+      matches: item.erp_matches ?? [],
+    });
+  };
+
+  const handleVerErpMatches = async (
+    id: number,
+    recordType: ErpRecordType
+  ) => {
+    try {
+      const matches = await fetchErpMatches(recordType, id);
+      setErpMatchModal({ open: true, item: null, matches });
+    } catch {
+      /* sem matches */
+    }
+  };
+
 
   useEffect(() => {
     api
@@ -572,10 +537,10 @@ export default function AdminAprovacoes() {
                             size="xs"
                             color="blue"
                             outline
-                            onClick={() => abrirErpMatch(avaria)}
+                            onClick={() => abrirErpMatchModal(avaria)}
                             title="Ver checks ERP encontrados"
                           >
-                            {avaria.erp_matches.length} check(s)
+                            {avaria.erp_matches?.length ?? 0} check(s)
                           </Button>
                         ) : (
                           <span className="text-gray-500 text-xs">—</span>
@@ -659,10 +624,10 @@ export default function AdminAprovacoes() {
                             size="xs"
                             color="blue"
                             outline
-                            onClick={() => abrirErpMatch(conferencia)}
+                            onClick={() => abrirErpMatchModal(conferencia)}
                             title="Ver checks ERP encontrados"
                           >
-                            {conferencia.erp_matches.length} check(s)
+                            {conferencia.erp_matches?.length ?? 0} check(s)
                           </Button>
                         ) : (
                           <span className="text-gray-500 text-xs">—</span>
@@ -727,10 +692,10 @@ export default function AdminAprovacoes() {
                             size="xs"
                             color="blue"
                             outline
-                            onClick={() => abrirErpMatch(tarefa)}
+                            onClick={() => abrirErpMatchModal(tarefa)}
                             title="Ver checks ERP encontrados"
                           >
-                            {tarefa.erp_matches.length} check(s)
+                            {tarefa.erp_matches?.length ?? 0} check(s)
                           </Button>
                         ) : (
                           <span className="text-gray-500 text-xs">—</span>

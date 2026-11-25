@@ -100,6 +100,12 @@ export const routes: AppRoute[] = [
     adminOnly: true,
   },
   {
+    path: "/admin/erp-json",
+    element: <Layout pagina={<AdminErpJsonUploadPage />} />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: "/recebimento",
     element: <Layout pagina={<ReceiptPage />} />,
     protected: true,

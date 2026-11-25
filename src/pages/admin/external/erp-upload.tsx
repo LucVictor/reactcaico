@@ -16,10 +16,12 @@ import {
   TableHead,
   TableHeadCell,
   TableRow,
-  TextInput,
 } from "flowbite-react";
 import api from "../../../api";
-import type { ErpMatch } from "../aprovacoes";
+import { fetchErpMatches } from "./erp-matches";
+
+export type { ErpJsonFileInfo, ErpMatchRow, ErpRecordType } from "./erp-matches";
+export { fetchErpMatches } from "./erp-matches";
 
 export interface ErpJsonFileInfo {
   file_id: number;
@@ -31,7 +33,10 @@ export interface ErpJsonFileInfo {
 
 export interface ErpMatchRow extends ErpMatch {
   record_name?: string;
+  record_type_field?: string;
 }
+
+export type ErpRecordType = "conference" | "damaged" | "task_item";
 
 export default function AdminErpJsonUploadPage() {
   const hoje = dayjs().format("YYYY-MM-DD");
@@ -44,14 +49,11 @@ export default function AdminErpJsonUploadPage() {
   const [aplicarFeedback, setAplicarFeedback] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{
     open: boolean;
-    recordType: "conference" | "damaged" | "task_item";
+    recordType: ErpRecordType;
     recordId: number;
     matches: ErpMatchRow[];
   }>({ open: false, recordType: "conference", recordId: 0, matches: [] });
   const [matchLoading, setMatchLoading] = useState(false);
-  const [matchFile, setMatchFile] = useState<ErpJsonFileInfo | null>(null);
-  const [matchFeedback, setMatchFeedback] = useState<string | null>(null);
-
 
   const recarregarArquivos = useCallback(async () => {
     setCarregandoFiles(true);
@@ -82,7 +84,7 @@ export default function AdminErpJsonUploadPage() {
       );
       setArquivo(null);
       await recarregarArquivos();
-    } catch (err) {
+    } catch {
       setUploadFeedback("Não foi possível fazer o upload do arquivo.");
     } finally {
       setCarregandoUpload(false);
@@ -114,31 +116,34 @@ export default function AdminErpJsonUploadPage() {
     }
   };
 
-  const handleVerMatches = async (
-    recordType: "conference" | "damaged" | "task_item",
-    recordId: number
-  ) => {
+  const handleVerMatches = async (recordType: ErpRecordType, recordId: number) => {
     setMatchModal({ open: true, recordType, recordId, matches: [] });
+    setMatchLoading(true);
     try {
-      const res = await api.get("/external/erp/json/matches", {
-        params: { record_id: recordId, record_type: recordType },
-      });
-      setMatchModal((m) => ({
-        ...m,
-        matches: Array.isArray(res.data) ? res.data : [],
-      }));
+      const matches = await fetchErpMatches(recordType, recordId);
+      setMatchModal((m) => ({ ...m, matches }));
     } catch {
       setMatchModal((m) => ({ ...m, matches: [] }));
+    } finally {
+      setMatchLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-7xl space-y-4">
+      <div className="rounded-2xl border border-gray-600 bg-gray-800 p-4 shadow-lg sm:p-6">
+        <h1 className="text-2xl font-bold text-white">Upload ERP</h1>
+        <p className="mt-1 max-w-2xl text-sm text-gray-300">
+          Ingere arquivos JSON exportados do ERP e reaplica o cruzamento em
+          solicitações pendentes.
+        </p>
+      </div>
+
       <Card className="shadow-md">
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-              Upload de JSON do ERP
+              Ingerir JSON
             </h2>
             <Button
               color="green"
@@ -169,12 +174,15 @@ export default function AdminErpJsonUploadPage() {
           <div className="flex flex-col gap-3">
             <Label>Arquivo JSON exportado do ERP</Label>
             <div className="flex flex-wrap items-center gap-3">
-              <FileInput
+              <input
+                type="file"
+                accept=".json"
                 onChange={(e) => {
                   const file = e.target.files?.[0] ?? null;
                   setArquivo(file);
                   setUploadFeedback(null);
-                }
+                }}
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer dark:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:focus:ring-blue-600"
               />
               <Button
                 color="blue"
@@ -222,7 +230,7 @@ export default function AdminErpJsonUploadPage() {
             <TableBody>
               {files.map((f) => (
                 <TableRow key={f.file_id}>
-
+                  <TableCell className="text-left">{f.filename}</TableCell>
                   <TableCell>
                     <Badge
                       color={f.erp_type === "ajuste" ? "success" : "warning"}
@@ -256,10 +264,20 @@ export default function AdminErpJsonUploadPage() {
         size="lg"
       >
         <ModalHeader>
-          Checks ERP — {matchModal.recordType ==="conference" ? "Conferência" : matchModal.recordType === "damaged" ? "Avaria" : "Item de Tarefa"} #{matchModal.recordId}
+          Checks ERP —{" "}
+          {matchModal.recordType === "conference"
+            ? "Conferência"
+            : matchModal.recordType === "damaged"
+              ? "Avaria"
+              : "Item de Tarefa"}{" "}
+          #{matchModal.recordId}
         </ModalHeader>
         <ModalBody>
-          {matchModal.matches.length === 0 ? (
+          {matchLoading ? (
+            <div className="flex justify-center py-6">
+              <Spinner size="xl" />
+            </div>
+          ) : matchModal.matches.length === 0 ? (
             <p className="text-center text-gray-600 dark:text-gray-300">
               Nenhum check ERP encontrado para este registro.
             </p>
@@ -283,11 +301,13 @@ export default function AdminErpJsonUploadPage() {
                     <TableCell className="text-left">
                       <div className="break-words">
                         <span className="font-medium">{m.product_code}</span>
-                        <span className="hidden xs:inline mx-1 text-gray-500">—</span>
+                        <span className="mx-1 text-gray-500">—</span>
                         {m.product_name}
                       </div>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap">{m.num_mov}</TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {m.num_mov}
+                    </TableCell>
                     <TableCell className="whitespace-nowrap">
                       {dayjs(m.dt_mov).format("DD/MM/YYYY")}
                     </TableCell>
@@ -328,4 +348,3 @@ export default function AdminErpJsonUploadPage() {
     </div>
   );
 }
-
