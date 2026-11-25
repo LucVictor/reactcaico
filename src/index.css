@@ -8,6 +8,19 @@ html.dark body {
   background-color: #1f2937; /* gray-900 */
 }
 
+/* Botão secundário com contraste garantido em fundos claros e escuros */
+.btn-outline-contrast {
+  background-color: #ffffff;
+  border: 1px solid #4b5563;
+  color: #111827;
+  font-weight: 600;
+}
+
+.btn-outline-contrast:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
 /* ==========================================================================
    Adaptação para telas de telefone
    ========================================================================== */

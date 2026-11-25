@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { AxiosError } from "axios";
+import dayjs from "dayjs";
 import {
   Badge,
   Button,
@@ -24,7 +25,6 @@ import api from "../../../api";
 import { useAuthStore } from "../../authStore";
 import TaskExportButtons from "../../../components/TaskExportButtons";
 import {
-  ApprovalActions,
   ApprovalBadge,
   RejectionNote,
   type ApprovalInfo,
@@ -112,6 +112,8 @@ export default function AdminTasks() {
   const [filterApproval, setFilterApproval] = useState<ApprovalStatus | "">(
     "",
   );
+  const [filterDate1, setFilterDate1] = useState(dayjs().format("YYYY-MM-DD"));
+  const [filterDate2, setFilterDate2] = useState(dayjs().format("YYYY-MM-DD"));
   const [deleteTarget, setDeleteTarget] = useState<AdminTaskProps | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteFeedback, setDeleteFeedback] = useState<Feedback>(null);
@@ -160,6 +162,8 @@ export default function AdminTasks() {
           ...(filterUserId ? { user_id: Number(filterUserId) } : {}),
           ...(filterCompleted ? { completed: filterCompleted } : {}),
           ...(filterApproval ? { approval_status: filterApproval } : {}),
+          ...(filterDate1 ? { date1: filterDate1 } : {}),
+          ...(filterDate2 ? { date2: filterDate2 } : {}),
         },
       });
       setAdminTasks(res.data);
@@ -168,7 +172,7 @@ export default function AdminTasks() {
     } finally {
       setTasksLoading(false);
     }
-  }, [filterUserId, filterCompleted, filterApproval]);
+  }, [filterUserId, filterCompleted, filterApproval, filterDate1, filterDate2]);
 
   useEffect(() => {
     fetchAdminTasks();
@@ -301,18 +305,6 @@ export default function AdminTasks() {
     openItems(taskId);
   };
 
-  const decideTask = async (
-    taskId: number,
-    approved: boolean,
-    rejection_reason?: string,
-  ) => {
-    await api.patch(`/task/admin/tasks/${taskId}/approve`, {
-      approved,
-      rejection_reason: approved ? null : rejection_reason,
-    });
-    await fetchAdminTasks();
-  };
-
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
@@ -351,10 +343,15 @@ export default function AdminTasks() {
       {/* Acompanhamento de tasks */}
       <Card className="shadow-md">
         <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-white">
-            Acompanhamento de Tarefas
-          </h2>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+              Acompanhamento de Tarefas
+            </h2>
+            <p className="text-xs text-gray-500 dark:text-gray-300">
+              Aprovações são registradas em Adm: Aprovações.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
             <div className="w-full sm:w-56">
               <Label htmlFor="filter-usuario">Usuário</Label>
               <Select
@@ -396,6 +393,26 @@ export default function AdminTasks() {
                 <option value="approved">Aprovadas</option>
                 <option value="rejected">Reprovadas</option>
               </Select>
+            </div>
+            <div className="w-full sm:w-44">
+              <Label htmlFor="filter-data-inicial">Data inicial</Label>
+              <TextInput
+                id="filter-data-inicial"
+                type="date"
+                value={filterDate1}
+                max={filterDate2 || undefined}
+                onChange={(e) => setFilterDate1(e.target.value)}
+              />
+            </div>
+            <div className="w-full sm:w-44">
+              <Label htmlFor="filter-data-final">Data final</Label>
+              <TextInput
+                id="filter-data-final"
+                type="date"
+                value={filterDate2}
+                min={filterDate1 || undefined}
+                onChange={(e) => setFilterDate2(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -450,10 +467,6 @@ export default function AdminTasks() {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col items-center gap-2">
-                      <ApprovalActions
-                        onApprove={() => decideTask(task.id, true)}
-                        onReject={(reason) => decideTask(task.id, false, reason)}
-                      />
                       <div className="flex flex-wrap items-center justify-center gap-2">
                         <Button
                           size="xs"

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import dayjs from "dayjs";
 import {
   Badge,
   Button,
@@ -29,6 +30,14 @@ const STATUS_META: Record<
   rejected: { label: "Reprovado", color: "failure" },
 };
 
+const SECONDARY_BUTTON = "btn-outline-contrast";
+
+const formatarDecisao = (item: ApprovalInfo) => {
+  const quem = item.approved_by ? `Reprovado por ${item.approved_by}` : "Reprovado";
+  if (!item.approved_at) return quem;
+  return `${quem} em ${dayjs(item.approved_at).format("DD/MM/YYYY HH:mm")}`;
+};
+
 export function ApprovalBadge({ status }: { status?: ApprovalStatus }) {
   if (!status) return null;
   const meta = STATUS_META[status];
@@ -51,6 +60,56 @@ export function RejectionNote({
     >
       <span className="font-semibold">Motivo:</span> {item.rejection_reason}
     </p>
+  );
+}
+
+/**
+ * Mostra o status da aprovação. Quando reprovado, vira um botão que abre o
+ * motivo da reprovação em um modal.
+ */
+export function ApprovalStatusCell({ item }: { item: ApprovalInfo }) {
+  const [open, setOpen] = useState(false);
+
+  if (!item.approval_status) return null;
+  const meta = STATUS_META[item.approval_status];
+
+  if (item.approval_status !== "rejected") {
+    return <Badge color={meta.color}>{meta.label}</Badge>;
+  }
+
+  return (
+    <>
+      <Button
+        size="xs"
+        color="failure"
+        className="whitespace-nowrap font-semibold"
+        onClick={() => setOpen(true)}
+        title="Ver motivo da reprovação"
+      >
+        Reprovado
+      </Button>
+
+      <Modal show={open} onClose={() => setOpen(false)} size="md">
+        <ModalHeader>Motivo da reprovação</ModalHeader>
+        <ModalBody>
+          <p className="whitespace-pre-line break-words text-sm text-gray-800 dark:text-gray-100">
+            {item.rejection_reason?.trim() || "Nenhum motivo informado."}
+          </p>
+          <p className="mt-4 text-xs text-gray-600 dark:text-gray-300">
+            {formatarDecisao(item)}
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="light"
+            className={SECONDARY_BUTTON}
+            onClick={() => setOpen(false)}
+          >
+            Fechar
+          </Button>
+        </ModalFooter>
+      </Modal>
+    </>
   );
 }
 
@@ -106,6 +165,7 @@ export function ApprovalActions({
         <Button
           size={size}
           color="success"
+          className="font-semibold"
           disabled={pending !== null}
           onClick={() => run("approve")}
         >
@@ -114,6 +174,7 @@ export function ApprovalActions({
         <Button
           size={size}
           color="failure"
+          className="font-semibold"
           disabled={pending !== null}
           onClick={() => {
             setError(null);
@@ -150,7 +211,7 @@ export function ApprovalActions({
               onChange={(e) => setReason(e.target.value)}
               placeholder="Descreva o motivo da reprovação"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-300">
               Os pontos concedidos por este cadastro serão estornados.
             </p>
             {error && (
@@ -161,13 +222,15 @@ export function ApprovalActions({
         <ModalFooter>
           <Button
             color="failure"
+            className="font-semibold"
             disabled={pending !== null || reason.trim().length === 0}
             onClick={() => run("reject")}
           >
             {pending === "reject" ? <Spinner size="sm" /> : "Reprovar"}
           </Button>
           <Button
-            color="gray"
+            color="light"
+            className={SECONDARY_BUTTON}
             disabled={pending !== null}
             onClick={() => setRejectOpen(false)}
           >

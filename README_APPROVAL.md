@@ -170,6 +170,13 @@ Regras da decisão:
 | :--- | :--- | :---: | :--- |
 | `approval_status` | `"pending"` \| `"approved"` \| `"rejected"` | Não | Filtra pela situação. Valor inválido → `400`. |
 | `local` | `int` | Não | Filtra pela filial. |
+| `date1` | `date` (`YYYY-MM-DD`) | Não | Data inicial de `damaged_date` (inclusive). |
+| `date2` | `date` (`YYYY-MM-DD`) | Não | Data final de `damaged_date` (inclusive). `date1 > date2` → `400`. |
+| `user_id` | `int` | Não | ID do operador que cadastrou. |
+| `created_by` | `string` | Não | Nome do operador (busca parcial, sem diferenciar maiúsculas). |
+| `product_code` | `string` | Não | Código do produto (busca parcial). |
+| `type` | `int` | Não | Tipo de avaria. |
+| `origin` | `int` | Não | Origem da avaria. |
 
 **Exemplo:**
 
@@ -216,7 +223,18 @@ curl -X PATCH "http://localhost:8000/damaged/admin/42/approve" \
 
 ### 5.3 `GET /conference/admin/`
 
-Mesmos parâmetros de `/damaged/admin/` (`approval_status`, `local`). Retorna lista de `ConferenceRead`, mais recentes primeiro.
+Mesmos parâmetros de `/damaged/admin/`, com as seguintes diferenças:
+
+| Parâmetro | Tipo | Descrição |
+| :--- | :--- | :--- |
+| `approval_status` | `string` | `pending`, `approved` ou `rejected`. |
+| `local` | `int` | Filial da conferência. |
+| `date1` / `date2` | `date` | Intervalo sobre `date_` (inclusive). `date1 > date2` → `400`. |
+| `user_id` | `int` | ID do operador que cadastrou. |
+| `created_by` | `string` | Nome do operador (busca parcial). |
+| `product_code` | `string` | Código do produto (busca parcial). |
+
+Não possui filtro de `type`/`origin` (a conferência não tem esses campos). Retorna lista de `ConferenceRead`, mais recentes primeiro.
 
 ### 5.4 `PATCH /conference/admin/{id}/approve`
 
@@ -240,7 +258,9 @@ Mesmo contrato de body do endpoint de avaria.
 | :--- | :--- | :--- |
 | `user_id` | `int` | Filtra tasks de um operador. |
 | `completed` | `bool` | `true` concluídas / `false` pendentes de resposta. |
-| `approval_status` | `"pending"` \| `"approved"` \| `"rejected"` | **Novo.** Filtra pela situação de aprovação. |
+| `approval_status` | `"pending"` \| `"approved"` \| `"rejected"` | Filtra pela situação de aprovação. |
+| `branch_code` | `int` | Filtra pela filial da task. |
+| `date1` / `date2` | `date` (`YYYY-MM-DD`) | Intervalo sobre `created_date` (inclusive). `date1 > date2` → `400`. |
 
 **Resposta `200 OK`:** lista de `AdminTaskRead`.
 
@@ -691,7 +711,7 @@ curl -X PATCH "$BASE/task/admin/tasks/8/approve" \
 
 ## 14. Observações finais
 
-- As rotas de **metas semanais** e de **geração de tasks** não foram alteradas nesta entrega; elas continuam considerando os registros existentes como antes.
+- As rotas de **metas semanais** (`GET /target/conference/weekly/{month}` e `GET /target/admin/conference/weekly/{month}`) contam **somente conferências e tasks aprovadas**. Pendentes e reprovadas são ignoradas pelo operador e pelo admin.
 - O ranking (`GET /rank/`) só reflete os pontos depois da aprovação.
 - Para auditoria, consulte `GET /logs/`: cada decisão registra a ação `Aprovar ...` / `Reprovar ...`, o administrador responsável e o motivo quando houver.
 - Em caso de dúvida sobre o fluxo operacional de cada módulo, consulte também `API_DOCUMENTATION.md`, `TASK_DOCUMENTATION.md` e `README_RECEIPT.md`.

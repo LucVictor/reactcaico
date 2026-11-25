@@ -20,8 +20,7 @@ import {
 } from "flowbite-react";
 import api from "../../api"; // ✅ Importando o modelo de API
 import {
-  ApprovalBadge,
-  RejectionNote,
+  ApprovalStatusCell,
   type ApprovalInfo,
 } from "../../components/Approval";
 
@@ -54,7 +53,7 @@ export default function TabelaDinamica({
     useState<string>("");
   const [filtroDiferencaValor, setFiltroDiferencaValor] = useState<string>("");
 
-  const itensPorPagina = 5;
+  const itensPorPagina = 10;
 
   // Ordenar do mais recente para o mais antigo
   const produtosOrdenados = useMemo(() => {
@@ -114,37 +113,44 @@ export default function TabelaDinamica({
     setFiltroNome("");
     setFiltroDiferencaOperador("");
     setFiltroDiferencaValor("");
+    setPagina(1);
   };
 
   return (
-    <div className="overflow-x-auto">
+    <div className="w-full">
       {/* Filtros */}
-      <div className="mb-6 rounded-xl bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
+      <div className="mb-4 rounded-xl bg-gray-50 p-4 shadow-sm dark:bg-gray-800">
         <h2 className="mb-3 text-lg font-semibold text-gray-700 dark:text-gray-200">
           Filtros
         </h2>
         <div className="flex flex-wrap gap-4">
           {/* Filtro por código */}
-          <div className="flex min-w-[180px] flex-col">
-            <Label htmlFor="codigo" />
+          <div className="flex min-w-[160px] flex-col">
+            <Label htmlFor="codigo">Código</Label>
             <TextInput
               id="codigo"
               type="text"
               value={filtroCodigo}
-              onChange={(e) => setFiltroCodigo(e.target.value)}
+              onChange={(e) => {
+                setFiltroCodigo(e.target.value);
+                setPagina(1);
+              }}
               placeholder="Código do produto"
               className="mt-1"
             />
           </div>
 
           {/* Filtro por nome */}
-          <div className="flex min-w-[250px] flex-1 flex-col">
-            <Label htmlFor="nome" />
+          <div className="flex min-w-[220px] flex-1 flex-col">
+            <Label htmlFor="nome">Produto</Label>
             <TextInput
               id="nome"
               type="text"
               value={filtroNome}
-              onChange={(e) => setFiltroNome(e.target.value)}
+              onChange={(e) => {
+                setFiltroNome(e.target.value);
+                setPagina(1);
+              }}
               placeholder="Nome do produto"
               className="mt-1"
             />
@@ -152,11 +158,14 @@ export default function TabelaDinamica({
 
           {/* Filtro por diferença */}
           <div className="flex min-w-[150px] flex-col">
-            <Label htmlFor="operador" />
+            <Label htmlFor="operador">Diferença</Label>
             <Select
               id="operador"
               value={filtroDiferencaOperador}
-              onChange={(e) => setFiltroDiferencaOperador(e.target.value)}
+              onChange={(e) => {
+                setFiltroDiferencaOperador(e.target.value);
+                setPagina(1);
+              }}
               className="mt-1"
             >
               <option value="">Selecione</option>
@@ -166,13 +175,16 @@ export default function TabelaDinamica({
             </Select>
           </div>
 
-          <div className="flex min-w-[120px] flex-col">
-            <Label htmlFor="valor" />
+          <div className="flex w-[110px] flex-col">
+            <Label htmlFor="valor">Valor</Label>
             <TextInput
               id="valor"
               type="number"
               value={filtroDiferencaValor}
-              onChange={(e) => setFiltroDiferencaValor(e.target.value)}
+              onChange={(e) => {
+                setFiltroDiferencaValor(e.target.value);
+                setPagina(1);
+              }}
               placeholder="Ex: 5"
               className="mt-1"
             />
@@ -180,7 +192,11 @@ export default function TabelaDinamica({
 
           {/* Botão limpar */}
           <div className="flex items-end">
-            <Button color="gray" outline onClick={limparFiltros}>
+            <Button
+              color="light"
+              className="btn-outline-contrast"
+              onClick={limparFiltros}
+            >
               Limpar
             </Button>
           </div>
@@ -188,56 +204,86 @@ export default function TabelaDinamica({
       </div>
 
       {/* Tabela */}
-      <Table hoverable={true} className="text-center">
-        <TableHead>
-          <TableRow>
-            <TableHeadCell>Data</TableHeadCell>
-            <TableHeadCell>Código</TableHeadCell>
-            <TableHeadCell>Produto</TableHeadCell>
-            <TableHeadCell>Qtd. Físico</TableHeadCell>
-            <TableHeadCell>Qtd. Sistema</TableHeadCell>
-            <TableHeadCell>Diferença</TableHeadCell>
-            <TableHeadCell>Aprovação</TableHeadCell>
-            <TableHeadCell>
-              <span className="sr-only">Ações</span>
-            </TableHeadCell>
-          </TableRow>
-        </TableHead>
-        <TableBody className="divide-y">
-          {produtosPagina.length > 0 ? (
-            produtosPagina.map((p) => (
-              <TableRow
-                key={p.id}
-                className="bg-white dark:border-gray-700 dark:bg-gray-800"
-              >
-                <TableCell>
-                  {p.date_ ? dayjs(p.date_).format("DD/MM/YYYY") : "-"}
-                </TableCell>
-                <TableCell>{p.product_code}</TableCell>
-                <TableCell>{p.product_name}</TableCell>
-                <TableCell>{p.quantity_real ?? "-"}</TableCell>
-                <TableCell>{p.quantity_system ?? "-"}</TableCell>
-                <TableCell>{p.diference ?? "-"}</TableCell>
-                <TableCell>
-                  <div className="flex flex-col items-center gap-1">
-                    <ApprovalBadge status={p.approval_status} />
-                    <RejectionNote item={p} className="max-w-[180px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <BotaoExcluir produto={p} />
+      <div className="overflow-x-auto">
+        <Table hoverable className="min-w-[860px] text-center text-sm">
+          <TableHead>
+            <TableRow>
+              <TableHeadCell className="whitespace-nowrap">Data</TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Código
+              </TableHeadCell>
+              <TableHeadCell>Produto</TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Qtd. Físico
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Qtd. Sistema
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Diferença
+              </TableHeadCell>
+              <TableHeadCell className="whitespace-nowrap">
+                Aprovação
+              </TableHeadCell>
+              <TableHeadCell>
+                <span className="sr-only">Ações</span>
+              </TableHeadCell>
+            </TableRow>
+          </TableHead>
+          <TableBody className="divide-y">
+            {produtosPagina.length > 0 ? (
+              produtosPagina.map((p) => (
+                <TableRow
+                  key={p.id}
+                  className="bg-white dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <TableCell className="whitespace-nowrap">
+                    {p.date_ ? dayjs(p.date_).format("DD/MM/YYYY") : "-"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {p.product_code}
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className="mx-auto max-w-[240px] truncate text-left"
+                      title={p.product_name}
+                    >
+                      {p.product_name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {p.quantity_real ?? "-"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {p.quantity_system ?? "-"}
+                  </TableCell>
+                  <TableCell
+                    className={`whitespace-nowrap font-semibold ${
+                      (p.diference ?? 0) < 0
+                        ? "text-red-600 dark:text-red-400"
+                        : "text-green-700 dark:text-green-400"
+                    }`}
+                  >
+                    {p.diference ?? "-"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    <ApprovalStatusCell item={p} />
+                  </TableCell>
+                  <TableCell>
+                    <BotaoExcluir produto={p} />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="py-4 text-center">
+                  Nenhum produto encontrado.
                 </TableCell>
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={8} className="py-4 text-center">
-                Nenhum produto encontrado.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Paginação */}
       <div className="mt-4 flex justify-center">
@@ -282,7 +328,12 @@ function BotaoExcluir({ produto }: BotaoExcluirProps) {
 
   return (
     <div className="m-1 flex justify-end">
-      <Button color="red" size="xs" outline onClick={() => setOpenModal(true)}>
+      <Button
+        color="failure"
+        size="xs"
+        className="font-semibold"
+        onClick={() => setOpenModal(true)}
+      >
         Excluir
       </Button>
       <Modal show={openModal} onClose={handleClose}>

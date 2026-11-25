@@ -87,7 +87,7 @@ function TableComponent() {
           <Spinner size="xl" aria-label="Loading..." />
         </div>
       ) : (
-        <div className="flex w-full flex-col items-center justify-start gap-4 p-2 sm:p-4">
+        <div className="flex w-full flex-col items-center justify-start gap-4">
           {/* Título */}
           <div className="w-fit rounded-2xl p-2 text-center font-extrabold text-white dark:bg-gray-700">
             <h1>Vencimentos</h1>
@@ -110,8 +110,8 @@ function TableComponent() {
           </div>
 
           {/* Tabela */}
-          <div className="w-full max-w-6xl overflow-x-auto rounded-lg border border-gray-600 shadow-sm">
-            <Table className="min-w-[720px] text-center opacity-95">
+          <div className="w-full max-w-7xl overflow-x-auto rounded-lg border border-gray-600 shadow-sm">
+            <Table className="min-w-[640px] text-center opacity-95 sm:min-w-full">
               <TableHead>
                 <TableRow>
                   <TableHeadCell>Código</TableHeadCell>
@@ -135,8 +135,8 @@ function TableComponent() {
                     <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
                       {produto.product_code}
                     </TableCell>
-                    <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
-                      {produto.product_name}
+                    <TableCell className="max-w-[340px] font-medium text-gray-900 dark:text-white">
+                      <span className="break-words">{produto.product_name}</span>
                     </TableCell>
                     <TableCell className="font-medium whitespace-nowrap text-gray-900 dark:text-white">
                       {produto.quantity}
@@ -217,7 +217,12 @@ function BotaoEditar({ produto, onAtualizar }: BotaoEditarProps) {
 
   return (
     <div>
-      <Button outline size="xs" onClick={() => setOpenModal(true)}>
+      <Button
+        color="light"
+        size="xs"
+        className="btn-outline-contrast"
+        onClick={() => setOpenModal(true)}
+      >
         Editar
       </Button>
       <Modal show={openModal} onClose={handleClose}>
@@ -258,7 +263,12 @@ function BotaoExcluir({ produto, onAtualizar }: BotaoExcluirProps) {
 
   return (
     <div>
-      <Button color="red" size="xs" outline onClick={() => setOpenModal(true)}>
+      <Button
+        color="failure"
+        size="xs"
+        className="font-semibold"
+        onClick={() => setOpenModal(true)}
+      >
         Excluir
       </Button>
       <Modal show={openModal} onClose={handleClose}>
@@ -291,7 +301,7 @@ interface IndexVencimentosProps {
 
 const IndexVencimentos: React.FC<IndexVencimentosProps> = ({ children }) => {
   return (
-    <main className="flex w-full flex-col items-center justify-start p-4">
+    <main className="flex w-full flex-col items-center justify-start">
       <TableComponent />
       {children && <div className="mt-4">{children}</div>}
     </main>
