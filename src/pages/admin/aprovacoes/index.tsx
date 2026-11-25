@@ -25,6 +25,54 @@ import {
 
 type TabKey = "damaged" | "conference" | "task";
 
+export interface ErpMatch {
+  id: number;
+  record_id: number;
+  record_type: "conference" | "damaged" | "task_item";
+  match_type: "adjustment" | "avaria";
+  product_code: string;
+  product_name: string;
+  num_mov: string;
+  dt_mov?: string | null;
+  quantity?: number | null;
+  cost_unit?: number | null;
+  cod_filial?: string | null;
+  erp_local?: string | null;
+  match_date?: string | null;
+}
+
+export interface ErpMatch {
+  id: number;
+  record_id: number;
+  record_type: "conference" | "damaged" | "task_item";
+  match_type: "adjustment" | "avaria";
+  product_code: string;
+  product_name: string;
+  num_mov: string;
+  dt_mov?: string | null;
+  quantity?: number | null;
+  cost_unit?: number | null;
+  cod_filial?: string | null;
+  erp_local?: string | null;
+  match_date?: string | null;
+}
+
+export interface ErpMatch {
+  id: number;
+  record_id: number;
+  record_type: "conference" | "damaged" | "task_item";
+  match_type: "adjustment" | "avaria";
+  product_code: string;
+  product_name: string;
+  num_mov: string;
+  dt_mov?: string | null;
+  quantity?: number | null;
+  cost_unit?: number | null;
+  cod_filial?: string | null;
+  erp_local?: string | null;
+  match_date?: string | null;
+}
+
 interface Local {
   id: number;
   name: string;
@@ -39,6 +87,10 @@ interface Avaria extends ApprovalInfo {
   damaged_date: string;
   created_by: string;
   local: number;
+  erp_avaria_match?: boolean;
+  erp_matches?: ErpMatch[];
+  erp_num_mov?: string | null;
+  erp_dt_mov?: string | null;
 }
 
 interface Conferencia extends ApprovalInfo {
@@ -52,6 +104,10 @@ interface Conferencia extends ApprovalInfo {
   date_: string;
   created_by: string;
   local: number;
+  erp_adjustment_match?: boolean;
+  erp_matches?: ErpMatch[];
+  erp_num_mov?: string | null;
+  erp_dt_mov?: string | null;
 }
 
 interface Tarefa extends ApprovalInfo {
@@ -63,6 +119,10 @@ interface Tarefa extends ApprovalInfo {
   branch_code: number;
   created_date: string;
   items_confirmed: number;
+  erp_adjustment_match?: boolean;
+  erp_matches?: ErpMatch[];
+  erp_num_mov?: string | null;
+  erp_dt_mov?: string | null;
 }
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -122,6 +182,21 @@ export default function AdminAprovacoes() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
+  const [erpMatchModal, setErpMatchModal] = useState<{
+    open: boolean;
+    item: Avaria | Conferencia | Tarefa | null;
+    matches: ErpMatch[];
+  }>({ open: false, item: null, matches: [] });
+  const [erpMatchModal, setErpMatchModal] = useState<{
+    open: boolean;
+    item: Avaria | Conferencia | Tarefa | null;
+    matches: ErpMatch[];
+  }>({ open: false, item: null, matches: [] });
+  const [erpMatchModal, setErpMatchModal] = useState<{
+    open: boolean;
+    item: Avaria | Conferencia | Tarefa | null;
+    matches: ErpMatch[];
+  }>({ open: false, item: null, matches: [] });
 
   useEffect(() => {
     api
@@ -201,7 +276,14 @@ export default function AdminAprovacoes() {
   const conferenciasPagina = conferencias.slice(inicio, fim);
   const tarefasPagina = tarefas.slice(inicio, fim);
 
-  const colunas = tab === "damaged" ? 7 : tab === "conference" ? 8 : 7;
+  const colunas =
+    tab === "damaged"
+      ? 10
+      : tab === "conference"
+        ? 11
+        : tab === "task"
+          ? 10
+          : 7;
 
   const aplicarPeriodo = (dias: number) => {
     setDataFinal(hoje);
@@ -214,6 +296,30 @@ export default function AdminAprovacoes() {
 
   const nomeFilial = (id: number) =>
     locais.find((l) => l.id === id)?.name ?? String(id);
+
+  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
+    setErpMatchModal({
+      open: true,
+      item,
+      matches: item.erp_matches ?? [],
+    });
+  };
+
+  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
+    setErpMatchModal({
+      open: true,
+      item,
+      matches: item.erp_matches ?? [],
+    });
+  };
+
+  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
+    setErpMatchModal({
+      open: true,
+      item,
+      matches: item.erp_matches ?? [],
+    });
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -355,6 +461,10 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Qtd.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
                       <TableHeadCell>Operador / Filial</TableHeadCell>
+                      <TableHeadCell>ERP</TableHeadCell>
+                      <TableHeadCell>Check ERP</TableHeadCell>
+                      <TableHeadCell>Nº Mov.</TableHeadCell>
+                      <TableHeadCell>Data Mov.</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -367,6 +477,10 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Dif.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
                       <TableHeadCell>Operador / Filial</TableHeadCell>
+                      <TableHeadCell>ERP</TableHeadCell>
+                      <TableHeadCell>Check ERP</TableHeadCell>
+                      <TableHeadCell>Nº Mov.</TableHeadCell>
+                      <TableHeadCell>Data Mov.</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -378,6 +492,10 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Data</TableHeadCell>
                       <TableHeadCell>Itens</TableHeadCell>
                       <TableHeadCell>Situação</TableHeadCell>
+                      <TableHeadCell>ERP</TableHeadCell>
+                      <TableHeadCell>Check ERP</TableHeadCell>
+                      <TableHeadCell>Nº Mov.</TableHeadCell>
+                      <TableHeadCell>Data Mov.</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -441,7 +559,33 @@ export default function AdminAprovacoes() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <ApprovalStatusCell item={avaria} />
+                        {avaria.erp_avaria_match ? (
+                          <Badge color="success">ERP</Badge>
+                        ) : (
+                          <Badge color="gray">—</Badge>
+                        )
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {avaria.erp_matches ? (
+                          <Button
+                            size="xs"
+                            color="blue"
+                            outline
+                            onClick={() => abrirErpMatch(avaria)}
+                            title="Ver checks ERP encontrados"
+                          >
+                            {avaria.erp_matches.length} check(s)
+                          </Button>
+                        ) : (
+                          <span className="text-gray-500 text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {avaria.erp_num_mov ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatarData(avaria.erp_dt_mov)}
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
@@ -502,7 +646,33 @@ export default function AdminAprovacoes() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <ApprovalStatusCell item={conferencia} />
+                        {conferencia.erp_adjustment_match ? (
+                          <Badge color="success">ERP</Badge>
+                        ) : (
+                          <Badge color="gray">—</Badge>
+                        )
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {conferencia.erp_matches ? (
+                          <Button
+                            size="xs"
+                            color="blue"
+                            outline
+                            onClick={() => abrirErpMatch(conferencia)}
+                            title="Ver checks ERP encontrados"
+                          >
+                            {conferencia.erp_matches.length} check(s)
+                          </Button>
+                        ) : (
+                          <span className="text-gray-500 text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {conferencia.erp_num_mov ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatarData(conferencia.erp_dt_mov)}
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
@@ -544,7 +714,33 @@ export default function AdminAprovacoes() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <ApprovalStatusCell item={tarefa} />
+                        {tarefa.erp_adjustment_match ? (
+                          <Badge color="success">ERP</Badge>
+                        ) : (
+                          <Badge color="gray">—</Badge>
+                        )
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {tarefa.erp_matches ? (
+                          <Button
+                            size="xs"
+                            color="blue"
+                            outline
+                            onClick={() => abrirErpMatch(tarefa)}
+                            title="Ver checks ERP encontrados"
+                          >
+                            {tarefa.erp_matches.length} check(s)
+                          </Button>
+                        ) : (
+                          <span className="text-gray-500 text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {tarefa.erp_num_mov ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatarData(tarefa.erp_dt_mov)}
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
