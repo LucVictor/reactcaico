@@ -148,6 +148,27 @@ const formatarQuantidade = (valor?: number | string | null) => {
   });
 };
 
+function ErpBadgeButton({
+  onClick,
+  title = "Ver movimentos ERP encontrados",
+}: {
+  onClick: () => void;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      aria-label={title}
+      className="mx-auto inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-green-50 px-3 py-1 text-xs font-semibold text-green-800 transition-colors hover:bg-green-100 focus:ring-2 focus:ring-green-400 focus:outline-none dark:border-green-700 dark:bg-green-900/40 dark:text-green-200 dark:hover:bg-green-900/70"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-green-500" aria-hidden />
+      ERP
+    </button>
+  );
+}
+
 function getErrorMessage(
   err: unknown,
   fallback = "Não foi possível concluir a operação.",
@@ -347,7 +368,7 @@ export default function AdminAprovacoes() {
   const conferenciasPagina = conferencias.slice(inicio, fim);
   const tarefasPagina = tarefas.slice(inicio, fim);
 
-  const colunas = tab === "damaged" ? 11 : tab === "conference" ? 12 : 8;
+  const colunas = tab === "damaged" ? 8 : tab === "conference" ? 9 : 8;
 
   const aplicarPeriodo = (dias: number) => {
     setDataFinal(hoje);
@@ -372,6 +393,18 @@ export default function AdminAprovacoes() {
       )
     : erpModal.matches;
 
+  /* O backend ordena os matches pela proximidade da data e aplica o primeiro;
+     nas tarefas, o primeiro de cada item é o aplicado. */
+  const erpAplicados = new Set<number>(
+    erpModal.taskItems
+      ? erpModal.taskItems
+          .map((item) => item.matches[0]?.match_id)
+          .filter((id): id is number => id !== undefined)
+      : erpModal.matches[0]
+        ? [erpModal.matches[0].match_id]
+        : [],
+  );
+
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       {/* Cabeçalho com abas */}
@@ -384,6 +417,10 @@ export default function AdminAprovacoes() {
             <p className="mt-1 max-w-2xl text-sm text-gray-300">
               Aprove ou reprove avarias, conferências e tarefas em um só lugar.
               Os pontos só são creditados após a aprovação.
+            </p>
+            <p className="mt-1 max-w-2xl text-xs text-gray-400">
+              Clique no selo <span className="font-semibold text-green-300">ERP</span>{" "}
+              de cada solicitação para ver os movimentos do ERP encontrados.
             </p>
           </div>
 
@@ -526,10 +563,9 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Qtd.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
                       <TableHeadCell>Operador / Filial</TableHeadCell>
-                      <TableHeadCell>ERP</TableHeadCell>
-                      <TableHeadCell>Check ERP</TableHeadCell>
-                      <TableHeadCell>Nº Mov.</TableHeadCell>
-                      <TableHeadCell>Data Mov.</TableHeadCell>
+                      <TableHeadCell title="Clique para ver os movimentos do ERP">
+                        ERP
+                      </TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -542,10 +578,9 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Dif.</TableHeadCell>
                       <TableHeadCell>Custo</TableHeadCell>
                       <TableHeadCell>Operador / Filial</TableHeadCell>
-                      <TableHeadCell>ERP</TableHeadCell>
-                      <TableHeadCell>Check ERP</TableHeadCell>
-                      <TableHeadCell>Nº Mov.</TableHeadCell>
-                      <TableHeadCell>Data Mov.</TableHeadCell>
+                      <TableHeadCell title="Clique para ver os movimentos do ERP">
+                        ERP
+                      </TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -557,7 +592,9 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Data</TableHeadCell>
                       <TableHeadCell>Itens</TableHeadCell>
                       <TableHeadCell>Situação</TableHeadCell>
-                      <TableHeadCell>ERP</TableHeadCell>
+                      <TableHeadCell title="Clique para ver os movimentos do ERP">
+                        ERP
+                      </TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -625,39 +662,20 @@ export default function AdminAprovacoes() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-2">
                         {avaria.erp_avaria_match ? (
-                          <Badge color="success">ERP</Badge>
-                        ) : (
-                          <Badge color="gray">—</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {avaria.erp_avaria_match ? (
-                          <Button
-                            size="xs"
-                            color="blue"
-                            outline
+                          <ErpBadgeButton
                             onClick={() =>
                               abrirErpRegistro(
                                 "damaged",
                                 avaria.id,
-                                `Checks ERP — Avaria #${avaria.id}`,
+                                `Movimentos ERP — Avaria #${avaria.id}`,
                               )
                             }
-                            title="Ver checks ERP encontrados"
-                          >
-                            Ver checks
-                          </Button>
+                          />
                         ) : (
-                          <span className="text-xs text-gray-500">—</span>
+                          <Badge color="gray">—</Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {avaria.erp_num_mov ?? "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatarData(avaria.erp_dt_mov)}
                       </TableCell>
                       <TableCell>
                         <ApprovalStatusCell item={avaria} />
@@ -720,39 +738,20 @@ export default function AdminAprovacoes() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-2">
                         {conferencia.erp_adjustment_match ? (
-                          <Badge color="success">ERP</Badge>
-                        ) : (
-                          <Badge color="gray">—</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {conferencia.erp_adjustment_match ? (
-                          <Button
-                            size="xs"
-                            color="blue"
-                            outline
+                          <ErpBadgeButton
                             onClick={() =>
                               abrirErpRegistro(
                                 "conference",
                                 conferencia.id,
-                                `Checks ERP — Conferência #${conferencia.id}`,
+                                `Movimentos ERP — Conferência #${conferencia.id}`,
                               )
                             }
-                            title="Ver checks ERP encontrados"
-                          >
-                            Ver checks
-                          </Button>
+                          />
                         ) : (
-                          <span className="text-xs text-gray-500">—</span>
+                          <Badge color="gray">—</Badge>
                         )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {conferencia.erp_num_mov ?? "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatarData(conferencia.erp_dt_mov)}
                       </TableCell>
                       <TableCell>
                         <ApprovalStatusCell item={conferencia} />
@@ -796,16 +795,11 @@ export default function AdminAprovacoes() {
                           <Badge color="warning">Pendente</Badge>
                         )}
                       </TableCell>
-                      <TableCell>
-                        <Button
-                          size="xs"
-                          color="blue"
-                          outline
+                      <TableCell className="py-2">
+                        <ErpBadgeButton
                           onClick={() => abrirErpTarefa(tarefa)}
-                          title="Ver checks ERP dos itens da tarefa"
-                        >
-                          Ver checks
-                        </Button>
+                          title="Ver movimentos ERP dos itens da tarefa"
+                        />
                       </TableCell>
                       <TableCell>
                         <ApprovalStatusCell item={tarefa} />
@@ -852,68 +846,113 @@ export default function AdminAprovacoes() {
           ) : erpDisplayRows.length === 0 ? (
             <p className="py-4 text-center text-gray-600 dark:text-gray-300">
               {exibirColunaItem
-                ? "Nenhum item desta tarefa possui cruzamento ERP."
-                : "Nenhum check ERP encontrado para este registro."}
+                ? "Nenhum item desta tarefa possui movimento ERP."
+                : "Nenhum movimento ERP encontrado para este registro."}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table
-                hoverable
-                className="min-w-[640px] text-center sm:min-w-full"
-              >
-                <TableHead>
-                  <TableRow>
-                    {exibirColunaItem && <TableHeadCell>Item</TableHeadCell>}
-                    <TableHeadCell>Produto</TableHeadCell>
-                    <TableHeadCell>Nº Mov.</TableHeadCell>
-                    <TableHeadCell>Data Mov.</TableHeadCell>
-                    <TableHeadCell>Qtd.</TableHeadCell>
-                    <TableHeadCell>Custo Unit.</TableHeadCell>
-                    <TableHeadCell>Filial</TableHeadCell>
-                    <TableHeadCell>Local</TableHeadCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {erpDisplayRows.map((row) => (
-                    <TableRow
-                      key={`${row.record_type}-${row.record_id}-${row.match_id}`}
-                    >
-                      {exibirColunaItem && (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-left dark:border-gray-700 dark:bg-gray-800/60">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge
+                    color={erpDisplayRows.length > 1 ? "warning" : "success"}
+                  >
+                    {erpDisplayRows.length} movimento(s) ERP localizado(s)
+                  </Badge>
+                  <span className="text-xs text-gray-600 dark:text-gray-300">
+                    Movimentos do ERP que batem com produto, local e data do
+                    registro.
+                  </span>
+                </div>
+                {erpDisplayRows.length > 1 && (
+                  <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
+                    Mais de um movimento atende ao mesmo produto/local/data. O
+                    mais próximo da data do registro foi aplicado (linha
+                    destacada) e os demais ficam listados para conferência.
+                  </p>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table
+                  hoverable
+                  className="min-w-[640px] text-center sm:min-w-full"
+                >
+                  <TableHead>
+                    <TableRow>
+                      {exibirColunaItem && <TableHeadCell>Item</TableHeadCell>}
+                      <TableHeadCell>Produto</TableHeadCell>
+                      <TableHeadCell>Tipo</TableHeadCell>
+                      <TableHeadCell>Nº Mov.</TableHeadCell>
+                      <TableHeadCell>Data Mov.</TableHeadCell>
+                      <TableHeadCell>Qtd.</TableHeadCell>
+                      <TableHeadCell>Custo Unit.</TableHeadCell>
+                      <TableHeadCell>Filial</TableHeadCell>
+                      <TableHeadCell>Local</TableHeadCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {erpDisplayRows.map((row) => (
+                      <TableRow
+                        key={`${row.record_type}-${row.record_id}-${row.match_id}`}
+                        className={
+                          erpAplicados.has(row.match_id)
+                            ? "bg-green-50/70 dark:bg-green-900/20"
+                            : undefined
+                        }
+                      >
+                        {exibirColunaItem && (
+                          <TableCell className="text-left">
+                            <div className="break-words">
+                              <span className="font-medium">
+                                {row.item_code ?? "—"}
+                              </span>
+                              <span className="mx-1 text-gray-500">—</span>
+                              {row.item_name ?? "—"}
+                            </div>
+                          </TableCell>
+                        )}
                         <TableCell className="text-left">
                           <div className="break-words">
                             <span className="font-medium">
-                              {row.item_code ?? "—"}
+                              {row.product_code}
                             </span>
                             <span className="mx-1 text-gray-500">—</span>
-                            {row.item_name ?? "—"}
+                            {row.product_name}
+                            {erpAplicados.has(row.match_id) && (
+                              <Badge color="success" className="ml-2 inline-flex">
+                                Aplicado
+                              </Badge>
+                            )}
                           </div>
                         </TableCell>
-                      )}
-                      <TableCell className="text-left">
-                        <div className="break-words">
-                          <span className="font-medium">
-                            {row.product_code}
-                          </span>
-                          <span className="mx-1 text-gray-500">—</span>
-                          {row.product_name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {row.num_mov}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatarData(row.dt_mov)}
-                      </TableCell>
-                      <TableCell>{formatarQuantidade(row.quantity)}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatarMoeda(row.cost_unit)}
-                      </TableCell>
-                      <TableCell>{row.cod_filial ?? "—"}</TableCell>
-                      <TableCell>{row.erp_local ?? "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                        <TableCell>
+                          <Badge
+                            color={
+                              row.match_type === "ajuste" ? "blue" : "warning"
+                            }
+                          >
+                            {row.match_type === "ajuste" ? "Ajuste" : "Avaria"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {row.num_mov}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatarData(row.dt_mov)}
+                        </TableCell>
+                        <TableCell>
+                          {formatarQuantidade(row.quantity)}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatarMoeda(row.cost_unit)}
+                        </TableCell>
+                        <TableCell>{row.cod_filial ?? "—"}</TableCell>
+                        <TableCell>{row.erp_local ?? "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </ModalBody>
