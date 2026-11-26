@@ -2,8 +2,13 @@ import { useCallback, useEffect, useState } from "react";
 import dayjs from "dayjs";
 import {
   Badge,
+  Button,
   Card,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Pagination,
   Select,
   Spinner,
@@ -16,7 +21,11 @@ import {
   TextInput,
 } from "flowbite-react";
 import api from "../../../api";
-import type { ErpMatchRow } from "../external";
+import {
+  fetchErpMatches,
+  type ErpMatchRow,
+  type ErpRecordType,
+} from "../external/erp-matches";
 import {
   ApprovalActions,
   ApprovalStatusCell,
@@ -26,13 +35,21 @@ import {
 
 type TabKey = "damaged" | "conference" | "task";
 
-
 interface Local {
   id: number;
   name: string;
 }
 
-interface Avaria extends ApprovalInfo {
+interface ErpFields {
+  erp_num_mov?: string | null;
+  erp_dt_mov?: string | null;
+  erp_quantity?: number | null;
+  erp_cost_unit?: number | null;
+  erp_cod_filial?: string | null;
+  erp_local?: string | null;
+}
+
+interface Avaria extends ApprovalInfo, ErpFields {
   id: number;
   product_code: string;
   product_name: string;
@@ -42,12 +59,9 @@ interface Avaria extends ApprovalInfo {
   created_by: string;
   local: number;
   erp_avaria_match?: boolean;
-  erp_matches?: ErpMatchRow[];
-  erp_num_mov?: string | null;
-  erp_dt_mov?: string | null;
 }
 
-interface Conferencia extends ApprovalInfo {
+interface Conferencia extends ApprovalInfo, ErpFields {
   id: number;
   product_code: string;
   product_name: string;
@@ -59,9 +73,6 @@ interface Conferencia extends ApprovalInfo {
   created_by: string;
   local: number;
   erp_adjustment_match?: boolean;
-  erp_matches?: ErpMatchRow[];
-  erp_num_mov?: string | null;
-  erp_dt_mov?: string | null;
 }
 
 interface Tarefa extends ApprovalInfo {
@@ -73,10 +84,25 @@ interface Tarefa extends ApprovalInfo {
   branch_code: number;
   created_date: string;
   items_confirmed: number;
-  erp_adjustment_match?: boolean;
-  erp_matches?: ErpMatchRow[];
-  erp_num_mov?: string | null;
-  erp_dt_mov?: string | null;
+}
+
+interface TaskItemErp extends ErpFields {
+  id: number;
+  code: string | null;
+  product_name: string;
+  erp_adjustment_match: boolean;
+}
+
+interface ErpTaskItem {
+  id: number;
+  code: string | null;
+  product_name: string;
+  matches: ErpMatchRow[];
+}
+
+interface ErpDisplayRow extends ErpMatchRow {
+  item_code?: string | null;
+  item_name?: string;
 }
 
 const TABS: { key: TabKey; label: string }[] = [
@@ -100,23 +126,42 @@ const PERIODOS = [
 ];
 
 const formatarData = (valor?: string | null) =>
-  valor ? dayjs(valor).format("DD/MM/YYYY") : "-";
+  valor ? dayjs(valor).format("DD/MM/YYYY") : "—";
 
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat("pt-BR", {
+const formatarMoeda = (valor?: number | string | null) => {
+  if (valor === null || valor === undefined || valor === "") return "—";
+  const numero = Number(valor);
+  if (Number.isNaN(numero)) return "—";
+  return numero.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(valor);
+  });
+};
 
-function getErrorMessage(err: unknown): string {
+const formatarQuantidade = (valor?: number | string | null) => {
+  if (valor === null || valor === undefined || valor === "") return "—";
+  const numero = Number(valor);
+  if (Number.isNaN(numero)) return "—";
+  return numero.toLocaleString("pt-BR", {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  });
+};
+
+function getErrorMessage(
+  err: unknown,
+  fallback = "Não foi possível concluir a operação.",
+): string {
   if (typeof err === "object" && err !== null && "response" in err) {
     const data = (
-      err as { response?: { data?: { detail?: string; message?: string } } }
+      err as { response?: { data?: { detail?: unknown; message?: unknown } } }
     ).response?.data;
-    if (data?.detail) return String(data.detail);
-    if (data?.message) return String(data.message);
+    const detail = data?.detail ?? data?.message;
+    if (detail !== undefined && detail !== null) {
+      return typeof detail === "string" ? detail : JSON.stringify(detail);
+    }
   }
-  return "Não foi possível carregar as solicitações.";
+  return fallback;
 }
 
 export default function AdminAprovacoes() {
@@ -136,37 +181,27 @@ export default function AdminAprovacoes() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [erpMatchModal, setErpMatchModal] = useState<{
+
+  const [erpModal, setErpModal] = useState<{
     open: boolean;
-    item: Avaria | Conferencia | Tarefa | null;
+    title: string;
+    loading: boolean;
+    error: string | null;
     matches: ErpMatchRow[];
-  }>({ open: false, item: null, matches: [] });
-
-  const abrirErpMatchModal = (item: Avaria | Conferencia | Tarefa) => {
-    setErpMatchModal({
-      open: true,
-      item,
-      matches: item.erp_matches ?? [],
-    });
-  };
-
-  const handleVerErpMatches = async (
-    id: number,
-    recordType: ErpRecordType
-  ) => {
-    try {
-      const matches = await fetchErpMatches(recordType, id);
-      setErpMatchModal({ open: true, item: null, matches });
-    } catch {
-      /* sem matches */
-    }
-  };
-
+    taskItems: ErpTaskItem[] | null;
+  }>({
+    open: false,
+    title: "",
+    loading: false,
+    error: null,
+    matches: [],
+    taskItems: null,
+  });
 
   useEffect(() => {
     api
       .get("/local/")
-      .then((res) => setLocais(res.data))
+      .then((res) => setLocais(Array.isArray(res.data) ? res.data : []))
       .catch((err) => console.error("Erro ao buscar filiais:", err));
   }, []);
 
@@ -191,7 +226,9 @@ export default function AdminAprovacoes() {
       else setTarefas(dados);
     } catch (err) {
       console.error("Erro ao listar aprovações:", err);
-      setErro(getErrorMessage(err));
+      setErro(
+        getErrorMessage(err, "Não foi possível carregar as solicitações."),
+      );
       if (tab === "damaged") setAvarias([]);
       else if (tab === "conference") setConferencias([]);
       else setTarefas([]);
@@ -207,6 +244,75 @@ export default function AdminAprovacoes() {
   useEffect(() => {
     setPagina(1);
   }, [tab, dataInicial, dataFinal, status, filial]);
+
+  const fecharErpModal = () =>
+    setErpModal((modal) => ({ ...modal, open: false }));
+
+  const abrirErpRegistro = async (
+    recordType: Exclude<ErpRecordType, "task_item">,
+    recordId: number,
+    title: string,
+  ) => {
+    setErpModal({
+      open: true,
+      title,
+      loading: true,
+      error: null,
+      matches: [],
+      taskItems: null,
+    });
+    try {
+      const matches = await fetchErpMatches(recordType, recordId);
+      setErpModal((modal) => ({ ...modal, loading: false, matches }));
+    } catch (err) {
+      setErpModal((modal) => ({
+        ...modal,
+        loading: false,
+        error: getErrorMessage(
+          err,
+          "Não foi possível carregar os checks ERP deste registro.",
+        ),
+      }));
+    }
+  };
+
+  const abrirErpTarefa = async (tarefa: Tarefa) => {
+    setErpModal({
+      open: true,
+      title: `Checks ERP — Tarefa #${tarefa.id}`,
+      loading: true,
+      error: null,
+      matches: [],
+      taskItems: [],
+    });
+    try {
+      const res = await api.get(`/task/items/${tarefa.id}`);
+      const items: TaskItemErp[] = Array.isArray(res.data) ? res.data : [];
+      const comMatch = items.filter((item) => item.erp_adjustment_match);
+
+      const taskItems = await Promise.all(
+        comMatch.map(async (item) => ({
+          id: item.id,
+          code: item.code,
+          product_name: item.product_name,
+          matches: await fetchErpMatches("task_item", item.id).catch(
+            () => [] as ErpMatchRow[],
+          ),
+        })),
+      );
+
+      setErpModal((modal) => ({ ...modal, loading: false, taskItems }));
+    } catch (err) {
+      setErpModal((modal) => ({
+        ...modal,
+        loading: false,
+        error: getErrorMessage(
+          err,
+          "Não foi possível carregar os itens e checks ERP desta tarefa.",
+        ),
+      }));
+    }
+  };
 
   const decidir = async (
     tipo: TabKey,
@@ -241,14 +347,7 @@ export default function AdminAprovacoes() {
   const conferenciasPagina = conferencias.slice(inicio, fim);
   const tarefasPagina = tarefas.slice(inicio, fim);
 
-  const colunas =
-    tab === "damaged"
-      ? 10
-      : tab === "conference"
-        ? 11
-        : tab === "task"
-          ? 10
-          : 7;
+  const colunas = tab === "damaged" ? 11 : tab === "conference" ? 12 : 8;
 
   const aplicarPeriodo = (dias: number) => {
     setDataFinal(hoje);
@@ -262,29 +361,16 @@ export default function AdminAprovacoes() {
   const nomeFilial = (id: number) =>
     locais.find((l) => l.id === id)?.name ?? String(id);
 
-  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
-    setErpMatchModal({
-      open: true,
-      item,
-      matches: item.erp_matches ?? [],
-    });
-  };
-
-  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
-    setErpMatchModal({
-      open: true,
-      item,
-      matches: item.erp_matches ?? [],
-    });
-  };
-
-  const abrirErpMatch = (item: Avaria | Conferencia | Tarefa) => {
-    setErpMatchModal({
-      open: true,
-      item,
-      matches: item.erp_matches ?? [],
-    });
-  };
+  const exibirColunaItem = erpModal.taskItems !== null;
+  const erpDisplayRows: ErpDisplayRow[] = erpModal.taskItems
+    ? erpModal.taskItems.flatMap((item) =>
+        item.matches.map((match) => ({
+          ...match,
+          item_code: item.code,
+          item_name: item.product_name,
+        })),
+      )
+    : erpModal.matches;
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
@@ -404,9 +490,20 @@ export default function AdminAprovacoes() {
               })}
             </div>
 
-            <Badge color="blue" className="w-fit">
-              {total} solicitação(ões)
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge color="blue" className="w-fit">
+                {total} solicitação(ões)
+              </Badge>
+              <Button
+                size="xs"
+                color="gray"
+                outline
+                onClick={() => buscar()}
+                disabled={carregando}
+              >
+                Atualizar
+              </Button>
+            </div>
           </div>
 
           {erro && (
@@ -416,7 +513,10 @@ export default function AdminAprovacoes() {
           )}
 
           <div className="overflow-x-auto">
-            <Table hoverable className="min-w-[640px] text-center text-sm sm:min-w-full">
+            <Table
+              hoverable
+              className="min-w-[640px] text-center text-sm sm:min-w-full"
+            >
               <TableHead>
                 <TableRow>
                   {tab === "damaged" && (
@@ -458,9 +558,6 @@ export default function AdminAprovacoes() {
                       <TableHeadCell>Itens</TableHeadCell>
                       <TableHeadCell>Situação</TableHeadCell>
                       <TableHeadCell>ERP</TableHeadCell>
-                      <TableHeadCell>Check ERP</TableHeadCell>
-                      <TableHeadCell>Nº Mov.</TableHeadCell>
-                      <TableHeadCell>Data Mov.</TableHeadCell>
                       <TableHeadCell>Aprovação</TableHeadCell>
                       <TableHeadCell>Ações</TableHeadCell>
                     </>
@@ -473,7 +570,10 @@ export default function AdminAprovacoes() {
                   <TableRow>
                     <TableCell colSpan={colunas} className="py-10">
                       <div className="flex items-center justify-center">
-                        <Spinner aria-label="Carregando aprovações..." size="xl" />
+                        <Spinner
+                          aria-label="Carregando aprovações..."
+                          size="xl"
+                        />
                       </div>
                     </TableCell>
                   </TableRow>
@@ -509,7 +609,9 @@ export default function AdminAprovacoes() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>{avaria.quantity}</TableCell>
+                      <TableCell>
+                        {formatarQuantidade(avaria.quantity)}
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatarMoeda(avaria.cost_total)}
                       </TableCell>
@@ -528,22 +630,27 @@ export default function AdminAprovacoes() {
                           <Badge color="success">ERP</Badge>
                         ) : (
                           <Badge color="gray">—</Badge>
-                        )
-                        }
+                        )}
                       </TableCell>
                       <TableCell>
-                        {avaria.erp_matches ? (
+                        {avaria.erp_avaria_match ? (
                           <Button
                             size="xs"
                             color="blue"
                             outline
-                            onClick={() => abrirErpMatchModal(avaria)}
+                            onClick={() =>
+                              abrirErpRegistro(
+                                "damaged",
+                                avaria.id,
+                                `Checks ERP — Avaria #${avaria.id}`,
+                              )
+                            }
                             title="Ver checks ERP encontrados"
                           >
-                            {avaria.erp_matches?.length ?? 0} check(s)
+                            Ver checks
                           </Button>
                         ) : (
-                          <span className="text-gray-500 text-xs">—</span>
+                          <span className="text-xs text-gray-500">—</span>
                         )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -551,6 +658,9 @@ export default function AdminAprovacoes() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatarData(avaria.erp_dt_mov)}
+                      </TableCell>
+                      <TableCell>
+                        <ApprovalStatusCell item={avaria} />
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
@@ -585,17 +695,17 @@ export default function AdminAprovacoes() {
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        {conferencia.quantity_system} /{" "}
-                        {conferencia.quantity_real}
+                        {formatarQuantidade(conferencia.quantity_system)} /{" "}
+                        {formatarQuantidade(conferencia.quantity_real)}
                       </TableCell>
                       <TableCell
-                        className={`whitespace-nowrap font-semibold ${
+                        className={`font-semibold whitespace-nowrap ${
                           conferencia.diference < 0
                             ? "text-red-600 dark:text-red-400"
                             : "text-green-700 dark:text-green-400"
                         }`}
                       >
-                        {conferencia.diference}
+                        {formatarQuantidade(conferencia.diference)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatarMoeda(conferencia.cost_total)}
@@ -615,22 +725,27 @@ export default function AdminAprovacoes() {
                           <Badge color="success">ERP</Badge>
                         ) : (
                           <Badge color="gray">—</Badge>
-                        )
-                        }
+                        )}
                       </TableCell>
                       <TableCell>
-                        {conferencia.erp_matches ? (
+                        {conferencia.erp_adjustment_match ? (
                           <Button
                             size="xs"
                             color="blue"
                             outline
-                            onClick={() => abrirErpMatchModal(conferencia)}
+                            onClick={() =>
+                              abrirErpRegistro(
+                                "conference",
+                                conferencia.id,
+                                `Checks ERP — Conferência #${conferencia.id}`,
+                              )
+                            }
                             title="Ver checks ERP encontrados"
                           >
-                            {conferencia.erp_matches?.length ?? 0} check(s)
+                            Ver checks
                           </Button>
                         ) : (
-                          <span className="text-gray-500 text-xs">—</span>
+                          <span className="text-xs text-gray-500">—</span>
                         )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
@@ -638,6 +753,9 @@ export default function AdminAprovacoes() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
                         {formatarData(conferencia.erp_dt_mov)}
+                      </TableCell>
+                      <TableCell>
+                        <ApprovalStatusCell item={conferencia} />
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
@@ -679,33 +797,18 @@ export default function AdminAprovacoes() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {tarefa.erp_adjustment_match ? (
-                          <Badge color="success">ERP</Badge>
-                        ) : (
-                          <Badge color="gray">—</Badge>
-                        )
-                        }
+                        <Button
+                          size="xs"
+                          color="blue"
+                          outline
+                          onClick={() => abrirErpTarefa(tarefa)}
+                          title="Ver checks ERP dos itens da tarefa"
+                        >
+                          Ver checks
+                        </Button>
                       </TableCell>
                       <TableCell>
-                        {tarefa.erp_matches ? (
-                          <Button
-                            size="xs"
-                            color="blue"
-                            outline
-                            onClick={() => abrirErpMatchModal(tarefa)}
-                            title="Ver checks ERP encontrados"
-                          >
-                            {tarefa.erp_matches?.length ?? 0} check(s)
-                          </Button>
-                        ) : (
-                          <span className="text-gray-500 text-xs">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {tarefa.erp_num_mov ?? "—"}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatarData(tarefa.erp_dt_mov)}
+                        <ApprovalStatusCell item={tarefa} />
                       </TableCell>
                       <TableCell>
                         <ApprovalActions
@@ -734,6 +837,92 @@ export default function AdminAprovacoes() {
           )}
         </div>
       </Card>
+
+      <Modal show={erpModal.open} onClose={fecharErpModal} size="4xl">
+        <ModalHeader>{erpModal.title}</ModalHeader>
+        <ModalBody>
+          {erpModal.loading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="xl" />
+            </div>
+          ) : erpModal.error ? (
+            <p className="rounded-lg border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
+              {erpModal.error}
+            </p>
+          ) : erpDisplayRows.length === 0 ? (
+            <p className="py-4 text-center text-gray-600 dark:text-gray-300">
+              {exibirColunaItem
+                ? "Nenhum item desta tarefa possui cruzamento ERP."
+                : "Nenhum check ERP encontrado para este registro."}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table
+                hoverable
+                className="min-w-[640px] text-center sm:min-w-full"
+              >
+                <TableHead>
+                  <TableRow>
+                    {exibirColunaItem && <TableHeadCell>Item</TableHeadCell>}
+                    <TableHeadCell>Produto</TableHeadCell>
+                    <TableHeadCell>Nº Mov.</TableHeadCell>
+                    <TableHeadCell>Data Mov.</TableHeadCell>
+                    <TableHeadCell>Qtd.</TableHeadCell>
+                    <TableHeadCell>Custo Unit.</TableHeadCell>
+                    <TableHeadCell>Filial</TableHeadCell>
+                    <TableHeadCell>Local</TableHeadCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {erpDisplayRows.map((row) => (
+                    <TableRow
+                      key={`${row.record_type}-${row.record_id}-${row.match_id}`}
+                    >
+                      {exibirColunaItem && (
+                        <TableCell className="text-left">
+                          <div className="break-words">
+                            <span className="font-medium">
+                              {row.item_code ?? "—"}
+                            </span>
+                            <span className="mx-1 text-gray-500">—</span>
+                            {row.item_name ?? "—"}
+                          </div>
+                        </TableCell>
+                      )}
+                      <TableCell className="text-left">
+                        <div className="break-words">
+                          <span className="font-medium">
+                            {row.product_code}
+                          </span>
+                          <span className="mx-1 text-gray-500">—</span>
+                          {row.product_name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {row.num_mov}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatarData(row.dt_mov)}
+                      </TableCell>
+                      <TableCell>{formatarQuantidade(row.quantity)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatarMoeda(row.cost_unit)}
+                      </TableCell>
+                      <TableCell>{row.cod_filial ?? "—"}</TableCell>
+                      <TableCell>{row.erp_local ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="gray" onClick={fecharErpModal}>
+            Fechar
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

@@ -26,6 +26,7 @@ import ChecklistSemana from "./pages/checklist";
 import ChecklistAdmin from "./pages/admin/checklist";
 import Auditoria from "./pages/auditoria";
 import { TaskExportPage, AdminTaskExportPage } from "./pages/taskExport";
+import { AdminErpJsonUploadPage } from "./pages/admin/external";
 export interface AppRoute {
   path: string;
   element: JSX.Element;

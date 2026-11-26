@@ -83,6 +83,13 @@ interface TaskItemProps {
   difference: number | null;
   cost_total: number | null;
   created_date: string;
+  erp_adjustment_match?: boolean;
+  erp_num_mov?: string | null;
+  erp_dt_mov?: string | null;
+  erp_quantity?: number | null;
+  erp_cost_unit?: number | null;
+  erp_cod_filial?: string | null;
+  erp_local?: string | null;
 }
 
 type Feedback = { type: "error" | "success"; text: string } | null;
@@ -864,6 +871,9 @@ export default function AdminTasks() {
                     <TableHeadCell>Qtd Sistema</TableHeadCell>
                     <TableHeadCell>Qtd Real</TableHeadCell>
                     <TableHeadCell>Diferença</TableHeadCell>
+                    <TableHeadCell>ERP</TableHeadCell>
+                    <TableHeadCell>Nº Mov.</TableHeadCell>
+                    <TableHeadCell>Data Mov.</TableHeadCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -894,6 +904,21 @@ export default function AdminTasks() {
                           ? (Number(item.difference) || 0).toLocaleString(
                               "pt-BR",
                             )
+                          : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {item.erp_adjustment_match ? (
+                          <Badge color="success">ERP</Badge>
+                        ) : (
+                          <Badge color="gray">—</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {item.erp_num_mov ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {item.erp_dt_mov
+                          ? dayjs(item.erp_dt_mov).format("DD/MM/YYYY")
                           : "—"}
                       </TableCell>
                     </TableRow>
