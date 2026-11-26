@@ -105,6 +105,11 @@ interface ErpDisplayRow extends ErpMatchRow {
   item_name?: string;
 }
 
+interface LoteAlvo {
+  id: number;
+  rotulo: string;
+}
+
 const TABS: { key: TabKey; label: string }[] = [
   { key: "damaged", label: "Avarias" },
   { key: "conference", label: "Conferências" },
@@ -202,6 +207,23 @@ export default function AdminAprovacoes() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [pagina, setPagina] = useState(1);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  const [lote, setLote] = useState<{
+    open: boolean;
+    loading: boolean;
+    running: boolean;
+    itens: LoteAlvo[];
+    erro: string | null;
+    falhas: string[];
+  }>({
+    open: false,
+    loading: false,
+    running: false,
+    itens: [],
+    erro: null,
+    falhas: [],
+  });
 
   const [erpModal, setErpModal] = useState<{
     open: boolean;
@@ -348,6 +370,121 @@ export default function AdminAprovacoes() {
     await buscar();
   };
 
+  const abrirLote = async () => {
+    setAviso(null);
+    setLote({
+      open: true,
+      loading: true,
+      running: false,
+      itens: [],
+      erro: null,
+      falhas: [],
+    });
+
+    try {
+      let itens: LoteAlvo[] = [];
+      let erroLeitura: string | null = null;
+
+      if (tab === "task") {
+        const pendentes = tarefas.filter(
+          (tarefa) => tarefa.approval_status !== "approved",
+        );
+        const respostas = await Promise.allSettled(
+          pendentes.map(async (tarefa) => {
+            const res = await api.get(`/task/items/${tarefa.id}`);
+            const items: TaskItemErp[] = Array.isArray(res.data) ? res.data : [];
+            return items.some((item) => item.erp_adjustment_match)
+              ? { id: tarefa.id, rotulo: `Tarefa #${tarefa.id}` }
+              : null;
+          }),
+        );
+        itens = respostas.reduce<LoteAlvo[]>((lista, resposta) => {
+          if (resposta.status === "fulfilled" && resposta.value) {
+            lista.push(resposta.value);
+          }
+          return lista;
+        }, []);
+        const falhasLeitura = respostas.filter(
+          (resposta) => resposta.status === "rejected",
+        ).length;
+        if (falhasLeitura > 0) {
+          erroLeitura = `${falhasLeitura} tarefa(s) não puderam ser verificadas e ficaram fora da aprovação em lote.`;
+        }
+      } else if (tab === "damaged") {
+        itens = avarias
+          .filter(
+            (avaria) =>
+              avaria.erp_avaria_match && avaria.approval_status !== "approved",
+          )
+          .map((avaria) => ({ id: avaria.id, rotulo: `Avaria #${avaria.id}` }));
+      } else {
+        itens = conferencias
+          .filter(
+            (conferencia) =>
+              conferencia.erp_adjustment_match &&
+              conferencia.approval_status !== "approved",
+          )
+          .map((conferencia) => ({
+            id: conferencia.id,
+            rotulo: `Conferência #${conferencia.id}`,
+          }));
+      }
+
+      setLote((atual) => ({
+        ...atual,
+        loading: false,
+        itens,
+        erro: erroLeitura,
+      }));
+    } catch (err) {
+      setLote((atual) => ({
+        ...atual,
+        loading: false,
+        erro: getErrorMessage(
+          err,
+          "Não foi possível verificar quais solicitações possuem ERP.",
+        ),
+      }));
+    }
+  };
+
+  const confirmarLote = async () => {
+    const alvos = lote.itens;
+    if (alvos.length === 0) return;
+
+    setLote((atual) => ({ ...atual, running: true, erro: null, falhas: [] }));
+
+    const falhas: string[] = [];
+    for (const alvo of alvos) {
+      try {
+        await api.patch(`${ENDPOINTS[tab]}${alvo.id}/approve`, {
+          approved: true,
+          rejection_reason: null,
+        });
+      } catch (err) {
+        falhas.push(
+          `${alvo.rotulo}: ${getErrorMessage(err, "falha ao aprovar.")}`,
+        );
+      }
+    }
+
+    await buscar();
+
+    const aprovadas = alvos.length - falhas.length;
+    setLote((atual) => ({
+      ...atual,
+      running: false,
+      open: falhas.length > 0,
+      itens: [],
+      falhas,
+    }));
+    setAviso(
+      falhas.length === 0
+        ? `${aprovadas} solicitação(ões) com ERP aprovada(s).`
+        : `${aprovadas} solicitação(ões) aprovada(s); ${falhas.length} com falha.`,
+    );
+  };
+
   const total =
     tab === "damaged"
       ? avarias.length
@@ -395,6 +532,20 @@ export default function AdminAprovacoes() {
 
   /* O backend ordena os matches pela proximidade da data e aplica o primeiro;
      nas tarefas, o primeiro de cada item é o aplicado. */
+  const pendentesComErp =
+    tab === "damaged"
+      ? avarias.filter(
+          (avaria) =>
+            avaria.erp_avaria_match && avaria.approval_status !== "approved",
+        ).length
+      : tab === "conference"
+        ? conferencias.filter(
+            (conferencia) =>
+              conferencia.erp_adjustment_match &&
+              conferencia.approval_status !== "approved",
+          ).length
+        : 0;
+
   const erpAplicados = new Set<number>(
     erpModal.taskItems
       ? erpModal.taskItems
@@ -527,10 +678,21 @@ export default function AdminAprovacoes() {
               })}
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <Badge color="blue" className="w-fit">
                 {total} solicitação(ões)
               </Badge>
+              <Button
+                size="xs"
+                color="success"
+                onClick={abrirLote}
+                disabled={carregando || total === 0}
+                title="Aprovar todas as solicitações da listagem que possuem movimento ERP"
+              >
+                {tab === "task"
+                  ? "Aprovar todos com ERP"
+                  : `Aprovar todos com ERP (${pendentesComErp})`}
+              </Button>
               <Button
                 size="xs"
                 color="gray"
@@ -546,6 +708,12 @@ export default function AdminAprovacoes() {
           {erro && (
             <p className="rounded-lg border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
               {erro}
+            </p>
+          )}
+
+          {aviso && (
+            <p className="rounded-lg border border-green-400 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-500 dark:bg-green-900/40 dark:text-green-200">
+              {aviso}
             </p>
           )}
 
@@ -959,6 +1127,95 @@ export default function AdminAprovacoes() {
         <ModalFooter>
           <Button color="gray" onClick={fecharErpModal}>
             Fechar
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal
+        show={lote.open}
+        onClose={() => {
+          if (!lote.running) setLote((atual) => ({ ...atual, open: false }));
+        }}
+        size="md"
+      >
+        <ModalHeader>Aprovar solicitações com ERP</ModalHeader>
+        <ModalBody>
+          {lote.loading ? (
+            <div className="flex justify-center py-8">
+              <Spinner size="xl" />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {lote.erro && (
+                <p className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-500 dark:bg-amber-900/40 dark:text-amber-200">
+                  {lote.erro}
+                </p>
+              )}
+
+              {lote.falhas.length > 0 && (
+                <div className="rounded-lg border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500 dark:bg-red-900/40 dark:text-red-200">
+                  <p className="font-semibold">
+                    {lote.falhas.length} solicitação(ões) não puderam ser
+                    aprovadas:
+                  </p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-xs">
+                    {lote.falhas.map((falha) => (
+                      <li key={falha}>{falha}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {lote.itens.length === 0 ? (
+                lote.falhas.length === 0 && (
+                  <p className="py-2 text-center text-gray-600 dark:text-gray-300">
+                    Nenhuma solicitação da listagem possui movimento ERP para
+                    aprovar.
+                  </p>
+                )
+              ) : (
+                <>
+                  <p className="text-sm text-gray-700 dark:text-gray-200">
+                    <span className="font-semibold">{lote.itens.length}</span>{" "}
+                    solicitação(ões) com ERP serão aprovadas. As demais não são
+                    afetadas.
+                  </p>
+                  <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-sm text-gray-700 dark:text-gray-200">
+                    {lote.itens.map((item) => (
+                      <li key={item.id}>{item.rotulo}</li>
+                    ))}
+                  </ul>
+                  {lote.falhas.length > 0 && (
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Os itens já processados não serão aprovados novamente.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            color="success"
+            disabled={lote.loading || lote.running || lote.itens.length === 0}
+            onClick={confirmarLote}
+          >
+            {lote.running ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Aprovando...
+              </>
+            ) : (
+              `Aprovar ${lote.itens.length}`
+            )}
+          </Button>
+          <Button
+            color="gray"
+            disabled={lote.running}
+            onClick={() => setLote((atual) => ({ ...atual, open: false }))}
+          >
+            Cancelar
           </Button>
         </ModalFooter>
       </Modal>
