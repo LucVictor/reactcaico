@@ -35,6 +35,8 @@ import {
 
 type TabKey = "damaged" | "conference" | "task";
 
+type LoteMode = "erp" | "zeroDiff";
+
 interface Local {
   id: number;
   name: string;
@@ -153,6 +155,9 @@ const formatarQuantidade = (valor?: number | string | null) => {
   });
 };
 
+const diferencaZero = (valor: unknown) =>
+  valor !== null && valor !== undefined && valor !== "" && Number(valor) === 0;
+
 function ErpBadgeButton({
   onClick,
   title = "Ver movimentos ERP encontrados",
@@ -213,6 +218,8 @@ export default function AdminAprovacoes() {
     open: boolean;
     loading: boolean;
     running: boolean;
+    mode: LoteMode;
+    tipo: TabKey;
     itens: LoteAlvo[];
     erro: string | null;
     falhas: string[];
@@ -220,6 +227,8 @@ export default function AdminAprovacoes() {
     open: false,
     loading: false,
     running: false,
+    mode: "erp",
+    tipo: "damaged",
     itens: [],
     erro: null,
     falhas: [],
@@ -370,12 +379,14 @@ export default function AdminAprovacoes() {
     await buscar();
   };
 
-  const abrirLote = async () => {
+  const abrirLote = async (mode: LoteMode = "erp") => {
     setAviso(null);
     setLote({
       open: true,
       loading: true,
       running: false,
+      mode,
+      tipo: tab,
       itens: [],
       erro: null,
       falhas: [],
@@ -385,14 +396,27 @@ export default function AdminAprovacoes() {
       let itens: LoteAlvo[] = [];
       let erroLeitura: string | null = null;
 
-      if (tab === "task") {
+      if (mode === "zeroDiff") {
+        itens = conferencias
+          .filter(
+            (conferencia) =>
+              conferencia.approval_status !== "approved" &&
+              diferencaZero(conferencia.diference),
+          )
+          .map((conferencia) => ({
+            id: conferencia.id,
+            rotulo: `Conferência #${conferencia.id}`,
+          }));
+      } else if (tab === "task") {
         const pendentes = tarefas.filter(
           (tarefa) => tarefa.approval_status !== "approved",
         );
         const respostas = await Promise.allSettled(
           pendentes.map(async (tarefa) => {
             const res = await api.get(`/task/items/${tarefa.id}`);
-            const items: TaskItemErp[] = Array.isArray(res.data) ? res.data : [];
+            const items: TaskItemErp[] = Array.isArray(res.data)
+              ? res.data
+              : [];
             return items.some((item) => item.erp_adjustment_match)
               ? { id: tarefa.id, rotulo: `Tarefa #${tarefa.id}` }
               : null;
@@ -457,7 +481,7 @@ export default function AdminAprovacoes() {
     const falhas: string[] = [];
     for (const alvo of alvos) {
       try {
-        await api.patch(`${ENDPOINTS[tab]}${alvo.id}/approve`, {
+        await api.patch(`${ENDPOINTS[lote.tipo]}${alvo.id}/approve`, {
           approved: true,
           rejection_reason: null,
         });
@@ -478,9 +502,10 @@ export default function AdminAprovacoes() {
       itens: [],
       falhas,
     }));
+    const sufixo = lote.mode === "zeroDiff" ? " com Dif. 0" : " com ERP";
     setAviso(
       falhas.length === 0
-        ? `${aprovadas} solicitação(ões) com ERP aprovada(s).`
+        ? `${aprovadas} solicitação(ões)${sufixo} aprovada(s).`
         : `${aprovadas} solicitação(ões) aprovada(s); ${falhas.length} com falha.`,
     );
   };
@@ -546,6 +571,15 @@ export default function AdminAprovacoes() {
           ).length
         : 0;
 
+  const conferenciasComDifZero =
+    tab === "conference"
+      ? conferencias.filter(
+          (conferencia) =>
+            conferencia.approval_status !== "approved" &&
+            diferencaZero(conferencia.diference),
+        ).length
+      : 0;
+
   const erpAplicados = new Set<number>(
     erpModal.taskItems
       ? erpModal.taskItems
@@ -570,8 +604,9 @@ export default function AdminAprovacoes() {
               Os pontos só são creditados após a aprovação.
             </p>
             <p className="mt-1 max-w-2xl text-xs text-gray-400">
-              Clique no selo <span className="font-semibold text-green-300">ERP</span>{" "}
-              de cada solicitação para ver os movimentos do ERP encontrados.
+              Clique no selo{" "}
+              <span className="font-semibold text-green-300">ERP</span> de cada
+              solicitação para ver os movimentos do ERP encontrados.
             </p>
           </div>
 
@@ -685,7 +720,7 @@ export default function AdminAprovacoes() {
               <Button
                 size="xs"
                 color="success"
-                onClick={abrirLote}
+                onClick={() => abrirLote("erp")}
                 disabled={carregando || total === 0}
                 title="Aprovar todas as solicitações da listagem que possuem movimento ERP"
               >
@@ -693,6 +728,18 @@ export default function AdminAprovacoes() {
                   ? "Aprovar todos com ERP"
                   : `Aprovar todos com ERP (${pendentesComErp})`}
               </Button>
+              {tab === "conference" && (
+                <Button
+                  size="xs"
+                  color="success"
+                  outline
+                  onClick={() => abrirLote("zeroDiff")}
+                  disabled={carregando || conferenciasComDifZero === 0}
+                  title="Aprovar todas as conferências da listagem com Dif. igual a 0"
+                >
+                  Aprovar com Dif. 0 ({conferenciasComDifZero})
+                </Button>
+              )}
               <Button
                 size="xs"
                 color="gray"
@@ -1087,7 +1134,10 @@ export default function AdminAprovacoes() {
                             <span className="mx-1 text-gray-500">—</span>
                             {row.product_name}
                             {erpAplicados.has(row.match_id) && (
-                              <Badge color="success" className="ml-2 inline-flex">
+                              <Badge
+                                color="success"
+                                className="ml-2 inline-flex"
+                              >
                                 Aplicado
                               </Badge>
                             )}
@@ -1138,7 +1188,11 @@ export default function AdminAprovacoes() {
         }}
         size="md"
       >
-        <ModalHeader>Aprovar solicitações com ERP</ModalHeader>
+        <ModalHeader>
+          {lote.mode === "zeroDiff"
+            ? "Aprovar conferências com Dif. 0"
+            : "Aprovar solicitações com ERP"}
+        </ModalHeader>
         <ModalBody>
           {lote.loading ? (
             <div className="flex justify-center py-8">
@@ -1169,16 +1223,19 @@ export default function AdminAprovacoes() {
               {lote.itens.length === 0 ? (
                 lote.falhas.length === 0 && (
                   <p className="py-2 text-center text-gray-600 dark:text-gray-300">
-                    Nenhuma solicitação da listagem possui movimento ERP para
-                    aprovar.
+                    {lote.mode === "zeroDiff"
+                      ? "Nenhuma conferência da listagem possui Dif. igual a 0 para aprovar."
+                      : "Nenhuma solicitação da listagem possui movimento ERP para aprovar."}
                   </p>
                 )
               ) : (
                 <>
                   <p className="text-sm text-gray-700 dark:text-gray-200">
                     <span className="font-semibold">{lote.itens.length}</span>{" "}
-                    solicitação(ões) com ERP serão aprovadas. As demais não são
-                    afetadas.
+                    {lote.mode === "zeroDiff"
+                      ? "conferência(s) com Dif. 0 serão aprovadas."
+                      : "solicitação(ões) com ERP serão aprovadas."}{" "}
+                    As demais não são afetadas.
                   </p>
                   <ul className="max-h-40 list-disc space-y-1 overflow-y-auto pl-5 text-sm text-gray-700 dark:text-gray-200">
                     {lote.itens.map((item) => (
