@@ -231,6 +231,9 @@ export default function Layout({ pagina }: paginaProps) {
                 <DropdownItem onClick={() => navigate("/admin/aprovacoes")}>
                   Adm: Aprovações
                 </DropdownItem>
+                <DropdownItem onClick={() => navigate("/admin/avarias")}>
+                  Adm: Relatório de Avarias
+                </DropdownItem>
                 <DropdownItem onClick={() => navigate("/admin/erp-json")}>
                   Adm: ERP JSON
                 </DropdownItem>
